@@ -1,0 +1,7 @@
+streamlit
+anthropic
+pdfplumber
+rank-bm25
+python-dotenv
+sentence-transformers
+torchvision
