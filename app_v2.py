@@ -62,42 +62,20 @@ def ask_claude(system: str, user: str) -> str:
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
 
-    import time
     from pathlib import Path
     PDFS_DIR = Path(__file__).parent / "tos_docs"
 
     file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
 
-    __sep_size = 40
 
-    t0 = time.time()
     pdf_text = extract_text_from_pdf(file_path)
-    
-    # print(f"⏱️ PDF extracted in {time.time() - t0:.2f}s\n")
-    # print("📰 " * __sep_size)
-    # print("                     PDF TEXT\n")
-    # print(pdf_text)
-    # print("📰 " * __sep_size, '\n')
-
-    # question = f"""Hey claude can you explain to me whats up with the 'AI agent' info in the doc? 
-    # Also tell me in what parts the document it appears. 
-    # Here is the info: {pdf_text}"""
-    # print(f"😎 says:\n", question, '\n')
-
-    # t1 = time.time()
-    # answer = ask_claude(SYSTEM_CONTRACT, question)
-    # print(f"⏱️ Claude answered in {time.time() - t1:.2f}s\n")
-
-    # print(f"🤖 says:\n", answer)
-
-
     pdf_text_chunks = chunk_text(pdf_text)
 
-    print("🍟 " * __sep_size)
+    print("🍟 " * 40)
     print("                     PDF TEXT CHUNKS\n")
     for chunk_no, chunk in enumerate(pdf_text_chunks, start=1):
         print(f"👉 {chunk_no}) {chunk}\n")
-    print("🍟 " * __sep_size, '\n')    
+    print("🍟 " * 40, '\n')    
 
     print(f"📦 Total chunks: {len(pdf_text_chunks)}")
     print(f"📏 Avg chunk size: {sum(len(c) for c in pdf_text_chunks) / len(pdf_text_chunks):.0f} chars\n")    

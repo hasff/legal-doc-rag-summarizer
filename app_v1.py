@@ -59,16 +59,15 @@ if __name__ == "__main__":
 
     file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
 
-    __sep_size = 40
 
     t0 = time.time()
     pdf_text = extract_text_from_pdf(file_path)
     
     print(f"⏱️ PDF extracted in {time.time() - t0:.2f}s\n")
-    # print("📰 " * __sep_size)
+    # print("📰 " * 40)
     # print("                     PDF TEXT\n")
     # print(pdf_text)
-    # print("📰 " * __sep_size, '\n')
+    # print("📰 " * 40, '\n')
 
     question = f"""Hey claude can you explain to me whats up with the 'AI agent' info in the doc? 
     Also tell me in what parts the document it appears. 
