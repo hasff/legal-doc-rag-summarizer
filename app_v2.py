@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
     t0 = time.time()
     pdf_text = extract_text_from_pdf(file_path)
-    print(f"⏱️ PDF extracted in {time.time() - t0:.2f}s\n")
-
+    
+    # print(f"⏱️ PDF extracted in {time.time() - t0:.2f}s\n")
     # print("📰 " * __sep_size)
     # print("                     PDF TEXT\n")
     # print(pdf_text)
