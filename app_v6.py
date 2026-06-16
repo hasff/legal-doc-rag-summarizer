@@ -174,6 +174,7 @@ def _test_compute_danger_score(pdf_text_chunks: list[str]):
         issue = rf.get('issue', 'None')
         print(f"➡️  clause: {clause} \n➡️  issue: {issue} \n\n")
 
+
 if __name__ == "__main__":
 
     from pathlib import Path
@@ -189,7 +190,5 @@ if __name__ == "__main__":
 
 
     _test_compute_danger_score(pdf_text_chunks)
-
-    danger_score = compute_danger_score(pdf_text_chunks)
 
 
