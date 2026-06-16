@@ -162,6 +162,18 @@ def compute_danger_score(chunks: list[str]) -> dict:
 # ─────────────────────────────────────────────
 # 🚀 ENTRY POINT - TESTING 
 # ─────────────────────────────────────────────
+def _test_compute_danger_score(pdf_text_chunks: list[str]):
+    danger_score = compute_danger_score(pdf_text_chunks)
+    
+    print()
+    print("✂️  " * 50)
+    print(f"Score: {danger_score.get('score', 0)}")
+    print(f"Summary: {danger_score.get('summary', 'None')} \n")    
+    for rf in danger_score.get('red_flags', []):
+        clause = rf.get('clause', 'None')
+        issue = rf.get('issue', 'None')
+        print(f"➡️  clause: {clause} \n➡️  issue: {issue} \n\n")
+
 if __name__ == "__main__":
 
     from pathlib import Path
@@ -175,13 +187,9 @@ if __name__ == "__main__":
     pdf_text = extract_text_from_pdf(file_path)
     pdf_text_chunks = chunk_text(pdf_text)
 
-    danger_score = compute_danger_score(pdf_text_chunks)
 
-    print(f"Score: {danger_score.get('score', 0)}")
-    print(f"Summary: {danger_score.get('summary', 'None')} \n")    
-    for rf in danger_score.get('red_flags', []):
-        clause = rf.get('clause', 'None')
-        issue = rf.get('issue', 'None')
-        print(f"➡️  clause: {clause} \n➡️  issue: {issue} \n\n")
+    _test_compute_danger_score(pdf_text_chunks)
+
+    danger_score = compute_danger_score(pdf_text_chunks)
 
 
