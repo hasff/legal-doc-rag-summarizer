@@ -1,1 +1,1 @@
-# terms-of-service-rag-summarizer
+# legal-doc-rag-summarizer
