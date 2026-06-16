@@ -189,6 +189,8 @@ if __name__ == "__main__":
     pdf_text_chunks = chunk_text(pdf_text)
 
 
+
+    # 1)
     _test_compute_danger_score(pdf_text_chunks)
 
 
