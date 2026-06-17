@@ -19,7 +19,6 @@ from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 
 # Environment
-import os
 from dotenv import load_dotenv
 load_dotenv()
 

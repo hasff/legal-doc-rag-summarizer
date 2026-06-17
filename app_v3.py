@@ -12,7 +12,6 @@ import anthropic
 from sentence_transformers import SentenceTransformer
 
 # Environment
-import os
 from dotenv import load_dotenv
 load_dotenv()
 

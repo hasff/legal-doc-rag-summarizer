@@ -8,7 +8,6 @@ import pdfplumber
 import anthropic
 
 # Environment
-import os
 from dotenv import load_dotenv
 load_dotenv()
 
