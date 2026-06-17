@@ -53,17 +53,15 @@ def ask_claude(system: str, user: str) -> str:
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
 
-    import time
     from pathlib import Path
     PDFS_DIR = Path(__file__).parent / "tos_docs"
 
     file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
 
 
-    t0 = time.time()
     pdf_text = extract_text_from_pdf(file_path)
     
-    print(f"⏱️ PDF extracted in {time.time() - t0:.2f}s\n")
+    print(f"⏱️ PDF extracted\n")
     # print("📰 " * 40)
     # print("                     PDF TEXT\n")
     # print(pdf_text)
@@ -74,9 +72,7 @@ if __name__ == "__main__":
     Here is the info: {pdf_text}"""
     print(f"😎 says:\n", question, '\n')
 
-    t1 = time.time()
     answer = ask_claude(SYSTEM_CONTRACT, question)
-    print(f"⏱️ Claude answered in {time.time() - t1:.2f}s\n")
 
     print(f"🤖 says:\n", answer)
 
