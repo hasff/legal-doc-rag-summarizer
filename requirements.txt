@@ -1,7 +1,7 @@
-streamlit
 anthropic
-pdfplumber
-rank-bm25
 python-dotenv
+pdfplumber
 sentence-transformers
 torchvision
+rank-bm25
+streamlit
