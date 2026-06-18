@@ -16,7 +16,7 @@ load_dotenv()
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
-# 🚨 Models can change over time - the following are valid at the time of this writtings Jun 2026
+# 🚨 Models can change over time - the following are valid at the time of this writing Jun 2026
 # CLAUDE_MODEL = "claude-sonnet-4-6"
 CLAUDE_MODEL = "claude-haiku-4-5"
 
