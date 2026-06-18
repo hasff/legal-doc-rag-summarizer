@@ -481,22 +481,26 @@ END OF SYNTHETIC DOCUMENT — legal-doc-rag-summarizer test suite — v1.0
 🤖 says:
  # Analysis of "AI Agent" References
 
-This document is explicitly flagged as **synthetic and for testing purposes only** — it's not a real legal agreement. 
-However, I'll address your question about the AI agent content.
+This document is explicitly flagged as **synthetic and for testing purposes only** — it's not 
+a real legal agreement. However, I'll address your question about the AI agent content.
 
 ## Where "AI Agent" Appears
 
-The primary reference is in **Section 3.2: AI Agent Conduct** (the section titled "Agent Responsibilities and Agent Conduct").
+The primary reference is in **Section 3.2: AI Agent Conduct** (the section titled 
+"Agent Responsibilities and Agent Conduct").
 
-There's also a related reference in **Section 3** header, which groups three different types of "agents" together to deliberately create ambiguity.
+There's also a related reference in **Section 3** header, which groups three different types of 
+"agents" together to deliberately create ambiguity.
 
 ## What Section 3.2 Says
 
 This clause covers autonomous AI systems deployed "within this system" and establishes:
 
-- **Permission scoping**: AI agents have defined boundaries limiting API access, data storage modification, and financial transactions
+- **Permission scoping**: AI agents have defined boundaries limiting API access, 
+data storage modification, and financial transactions
 - **Logging requirement**: All tool calls must be recorded in an audit trail
-- **Automatic enforcement**: Agents detected operating outside permitted scope face automatic termination and incident escalation
+- **Automatic enforcement**: Agents detected operating outside permitted scope 
+face automatic termination and incident escalation
 - **Human oversight threshold**: Any agent action exceeding €500 requires human approval
 
 ## Important Context
@@ -505,10 +509,12 @@ This section is deliberately ambiguous by design—it's sandwiched between:
 - **Section 3.1**: Legal agency (Power of Attorney context)
 - **Section 3.3**: Real estate agent obligations
 
-The document explicitly states this is a "RAG Danger Zone Test" with "intentionally ambiguous language designed to stress-test retrieval systems."
+The document explicitly states this is a "RAG Danger Zone Test" with "intentionally 
+ambiguous language designed to stress-test retrieval systems."
 
 **Bottom line**: If you're evaluating this for a real agreement, disregard it entirely. 
-If you're analyzing it as a test document, Section 3.2 is the primary AI agent clause, though the ambiguity is the point of the exercise.
+If you're analyzing it as a test document, Section 3.2 is the primary AI agent clause, 
+though the ambiguity is the point of the exercise.
 ```
 
 Claude answered correctly. It found Section 3.2, summarized the AI agent conduct rules, and noted the €500 human oversight threshold. Good answer.
