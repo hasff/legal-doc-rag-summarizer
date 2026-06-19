@@ -943,11 +943,246 @@ So now we have chunks. But that raises the natural next question: how do we figu
 
 #### ⚡ Quick Navigation: [⬅️ Part 02](#part-2) | [Part 04 ➡️](#part-4)
 
-> 📒 **What you'll learn:** How to turn text into numbers and use cosine similarity to find the most relevant chunks for any question.
+> 📒 **What you'll learn:** What text embeddings are, how vector search finds related chunks using cosine similarity, and where this approach starts to show its limits.
 
-_TODO_
+---
+
+### ⚠️ This part is dense, read carefully
+
+Up until now, "finding the right chunk" meant splitting text into pieces and preparing them for later retrieval.
+From here on, we don't just work with text anymore. Each chunk also becomes a vector made of numbers.
+Finding the right one becomes a math problem: comparing vectors instead of comparing words.
+
+This is the first real leap into the "AI" part of RAG. Take it step by step, and if the toy example further down clicks before the formal theory does, that's perfectly normal, that's exactly why it's there.
+
+---
+
+### Theory
+
+In Part 02 we split the document into chunks. Now we need a way to find which chunks are actually relevant to a given question. That's where **embeddings** come in.
+
+An embedding is a numerical representation of meaning. You feed a piece of text into an embedding model and get back a list of numbers (a vector), usually a few hundred dimensions long. Texts with similar meaning end up with vectors that point in similar directions, even if they don't share the same words. That's the whole trick: instead of comparing words, we compare directions in space.
+
+To know how close two vectors are, we use **cosine similarity**. It measures the cosine of the angle between two vectors:
+
+- `1` means the vectors point in exactly the same direction (maximum similarity)
+- `0` means they're perpendicular (no relationship)
+- `-1` means they point in opposite directions
+
+The formula itself:
+```math
+cosine_similarity(A, B) = (A · B) / (‖A‖ × ‖B‖)
+```
+
+Where `A · B` is the dot product of the two vectors, and `‖A‖`, `‖B‖` are their magnitudes (lengths).
+
+---
+
+> You'll also come across **cosine distance**, calculated simply as `1 - cosine similarity`.
+>
+> For example:
+> - **similarity** = `1.0` → **distance** = `0.0`
+> - **similarity** = `0.8` → **distance** = `0.2`
+> - **similarity** = `0.3` → **distance** = `0.7` 
+>
+> With `cosine similarity`, bigger is better. With `cosine distance`, smaller is better.
+>
+> Why have both? <br> Because most search and database APIs are built around the convention "smaller value = closer match" (the same convention used for Euclidean distance, k-nearest-neighbors, and most vector databases). Cosine distance lets a search function sort everything the same way, regardless of which similarity metric is behind it, without needing special-case logic for cosine.
+> 
+> We don't use cosine distance in this project. There's no vector database involved, everything stays in memory and our implementation works directly with similarity scores. But it's a term you'll run into constantly once you start using real vector databases (Chroma, Pinecone, Qdrant, etc.), most of them are built around distance, not similarity.
+
+---
+
+Wait, wait, wait, wait!!! Maybe what you just read makes sense on the surface, and you're thinking "I've got this"... but deep down it's still a bit "so-so".
+
+Let's put it in plain English.
+
+We talked about vectors with hundreds of dimensions (numbers). Now imagine they only have two numbers: one for the X axis and one for the Y axis. Let's imagine three words: "toy cat", "cat", and "dog".
+
+Their vectors might look something like this (this is a made-up example, not real data):
+
+- toy cat: [0.7, 0.7]
+- cat:     [0.6, 0.8]
+- dog:     [0.9, 0.3]
+
+![](assets/part_03/screenshot_cosine_simple_example.jpg)
+> 📝 Note: this illustration uses made-up positions to convey the idea, not exact values matching the example above.
+
+Cosine similarity is basically about the angle between these vectors (see the picture above), not the distance between the points themselves. A toy cat shares more meaning with a cat than with a dog, since it represents a cat, after all. Cat and dog, on the other hand, are both living animals, something a toy cat isn't.
+
+That's cosine similarity in plain words and numbers. In reality, those "2 coordinates" are more like 1024, or even more!
+
+⚠️ I don't want you to get the wrong idea, modern embeddings don't work exactly like the example I gave! A single number in an embedding doesn't represent just one meaning; it actually represents a pattern (learned during the model's training) that can combine multiple meanings at once, and it's practically impossible for us humans to interpret those numbers. We can't point to one number in the embedding and say "oh, this represents the relation between cat and toy cat"!
 
 [⬆️ **`Part 3`**](#part-3)
+
+---
+
+Okay, getting back on track. To find out how closely a user's question relates to each chunk, we perform a **vector search**:
+
+1. Compute the embedding for the user's question
+2. Compute the embeddings for every chunk (typically only once)
+3. Compute the cosine similarity between the question embedding and each chunk embedding
+4. Return the chunks with the highest similarity scores
+
+There's a catch, and we'll let the results speak for themselves below: embeddings capture meaning, not intent. A word like "agent" means something very different in a real estate contract, a financial agreement, and an AI permissions clause. Semantic search can't always tell which one you meant. 
+<br>It's not perfect: dense embeddings capture overall semantic closeness, not exact term matching, so even a well-trained model can blend different senses of the same word together. Fine-tuning on domain-specific text can reduce this, but it doesn't fully solve it.
+
+Enough of blah blah, let's get our hands on the real thing!
+
+---
+
+### Install dependencies
+
+> 💡 This part introduces `sentence-transformers` and `torchvision`. If you followed the setup step and ran `pip install -r requirements.txt`, you already have them. If not, install them now:
+
+```bash
+pip install sentence-transformers torchvision
+```
+
+We're using `sentence-transformers`, a free, local embedding library from Hugging Face. It runs entirely on your machine (no API calls, no cost), which makes it a great starting point for learning. Paid alternatives like Voyage AI or OpenAI's embedding models exist and are commonly used in production, often because they offer larger models, better multilingual support, or simply less local compute. For this tutorial, free and local is exactly what we want.
+
+`torchvision` isn't strictly required by our code, but installing it avoids a `ModuleNotFoundError` warning that `transformers` throws when it tries to import an optional `zoedepth` module. It's a clean, one-line fix: no warning to suppress, no noise to distract you from the real deal.
+
+---
+
+### Code walkthrough
+
+> 📄 **File:** `app_v3.py`
+
+#### Step 1 — Loading the embedding model
+
+```python
+# HuggingFace
+from sentence_transformers import SentenceTransformer
+
+...
+
+embeddings_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+...
+
+# ── Embeddings ────────────────────────────────────────────────────────────────
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    return embeddings_model.encode(texts).tolist()
+
+def embed_query(query: str) -> list[float]:
+    return embeddings_model.encode([query]).tolist()[0]
+```
+
+`all-MiniLM-L6-v2` is a small, fast, free embedding model: a solid default for learning and for small to medium projects. 
+Keep in mind that embedding models evolve over time — this one may be replaced or outperformed in the future.
+If you are reading this later, you can safely swap it for a newer SentenceTransformer model from Hugging Face, ideally one optimized for retrieval (look for “embedding” or “retrieval” models in the model hub).
+
+`embed_texts` handles a batch of chunks at once (more efficient), while `embed_query` handles a single string and returns just one vector instead of a list containing one vector.
+
+#### Step 2 — The actual science: cosine similarity and vector search
+
+```python
+# ── Vector search (cosine) ────────────────────────────────────────────────────
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    dot   = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x ** 2 for x in a))
+    mag_b = math.sqrt(sum(x ** 2 for x in b))
+    if mag_a == 0 or mag_b == 0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+def vector_search(query_emb: list[float], embeddings: list[list[float]], k: int = 5) -> list[tuple[int, float]]:
+    scores = [(i, cosine_similarity(query_emb, emb)) for i, emb in enumerate(embeddings)]
+    return sorted(scores, key=lambda x: x[1], reverse=True)[:k]
+```
+
+`cosine_similarity` implements the formula from the theory section directly: dot product of the two vectors, divided by the product of their magnitudes. `vector_search` applies that function between the question's embedding and every chunk's embedding, then returns the top `k` chunks sorted by score, highest first.
+
+#### Step 3 — Testing it
+
+> ⚠️ At this stage we are **not** calling Claude at all. Everything you're about to see comes purely from the free, local Hugging Face model finding related chunks by meaning.
+
+```python
+file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+
+pdf_text = extract_text_from_pdf(file_path)
+pdf_text_chunks = chunk_text(pdf_text)
+
+question = f"""Hey claude can you explain to me whats up with the 'AI agent' info in the doc? 
+Also tell me in what parts the document it appears."""
+
+chunks_embeddings = embed_texts(pdf_text_chunks)   
+question_embeddings = embed_query(question)
+
+vector_search_result = vector_search(question_embeddings, chunks_embeddings)
+
+for chunk_idx, score in vector_search_result:
+    print(f"🎯 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
+```
+
+[⬆️ **`Part 3`**](#part-3)
+
+---
+
+### Run it
+
+> 💡 On macOS/Linux use `python app_v3.py` instead of `py app_v3.py`.
+
+```bash
+py app_v3.py
+```
+
+Here's a partial look at the output (showing 2 of the 5 results, since `k=5`):
+
+```
+(venv) PS C:\Users\hugof\Documents\WORK\PDFs\PublicRepos\legal-doc-rag-summarizer> py .\app_v3.py  
+Loading weights: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████| 103/103 [00:00<00:00, 3084.20it/s]
+🎯 0.5133513437314128 => ll transactions conducted on behalf of the Principal and provide quarterly reporting (Form
+AG-REP-Q).
+3.2 AI Agent Conduct
+Autonomous AI agents deployed within this system must operate within predefined tool-use
+boundaries. Each agent is assigned a permission scope (Scope ID: AI-AGT-PERM-v2) that limits its
+ability to invoke external APIs, modify persistent storage, or initiate financial transactions. AI agents
+must log all tool calls to the central audit trail. Agents detected operating outside their permission
+scope are subject to automatic termination and incident escalation under INC-AI-BOUNDARY-001.
+Human oversight is mandatory for any agent action exceeding monetary threshold EUR 500.
+3.3 Real Estate Agent Obligations
+Licensed real estate agents must act in the best interest of their
+
+
+...
+
+
+🎯 0.2347944508186293 => -RED). Security incidents involving unauthorised physical access must
+be reported to the Facilities Security Officer within 1 hour. CCTV footage is retained for 30 days
+under physical security policy PHY-SEC-v3. Security personnel are authorised to detain individuals
+suspected of trespassing pending law enforcement arrival. All security incidents are logged under
+incident code PHY-INC-XXXX.
+4.3 Financial Security (Collateral)
+The Borrower must provide adequate security in the form of collateral assets with a minimum
+valuation of 120% of the principal loan amount. Security interests must be registered with the
+relevant authority (Registration Ref: FIN-SEC-REG-2024). In the event of default, the Lender is
+entitled to enforce the security and liquidate collateral assets. Security over intelle
+```
+
+`Loading weights` is just `sentence-transformers` loading the model the first time. It disappears on later runs once the model is cached.
+
+🛑 Remember: higher cosine similarity = closer meaning.
+That’s why the top result (0.51) is much more relevant to the query (it discusses AI agents, their permissions, and how they operate in the system), while the bottom one (0.23) is mostly noise in this context.
+
+---
+
+### Conclusions
+
+Vector search found the right chunk: the top result (score `0.513`) is exactly Section 3.2, **AI Agent Conduct**, the part of the contract we actually asked about.
+
+But look closer at the rest of the results. The model also pulled in Real Estate Agent obligations, financial security clauses, and physical security incidents. Why? Because "agent" and "security" carry different meanings in each section, and embeddings capture general semantic similarity, not exact intent. The model has no way of knowing you meant "AI agent" and not "real estate agent" or "security agent": it just sees that all these chunks talk about something close to "agent" or "security" in the same conceptual neighborhood.
+
+This is exactly why `danger_zone_rag_test.pdf` was built the way it was: every section shares ambiguous keywords with two unrelated domains, on purpose. Semantic search alone gets us close, but not precise enough. In the next part, we'll bring in **BM25**, a classic keyword-matching algorithm, to complement what embeddings miss: exact term matches.
+
+---
+
+> 💡 **RAG curiosity:** the embedding model doesn't know what any of its output numbers individually "mean". Each dimension is just a learned feature that helps the model separate concepts during training. You can think of "happy", "about oceans", or "about software" as illustrative labels for intuition, but in practice nobody can point at dimension #47 and say exactly what it tracks. The model just learned that texts close in meaning should land close together in that space, and that's good enough.
+
+> 🤡 **Fun fact:** this exact "toy cat closer to cat than dog" intuition is also why fine-tuned embedding models for niche domains (legal, medical, code) exist, the general-purpose all-MiniLM-L6-v2 vector space was trained on broad web text, so it sometimes misjudges angles between highly domain-specific terms that a specialized model would place much further apart.
+
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
