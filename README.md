@@ -970,7 +970,7 @@ To know how close two vectors are, we use **cosine similarity**. It measures the
 - `-1` means they point in opposite directions
 
 The formula itself:
-```math
+```
 cosine_similarity(A, B) = (A · B) / (‖A‖ × ‖B‖)
 ```
 
