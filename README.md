@@ -541,11 +541,397 @@ This is the problem RAG solves. The next parts build the solution, one piece at 
 
 #### ⚡ Quick Navigation: [⬅️ Part 01](#part-1) | [Part 03 ➡️](#part-3)
 
-> 📒 **What you'll learn:** How to split a document into manageable chunks so only the relevant pieces go into the prompt.
+> 📒 **What you'll learn:** Why splitting a document into small, overlapping pieces is the foundation of any RAG pipeline — and how different chunking strategies trade off simplicity against precision.
 
-_TODO_
+---
 
-[⬆️ **`Part 2`**](#part-2)
+### Theory
+
+In Part 01 we sent the entire PDF to Claude in one shot. That works for small documents, but it quickly becomes expensive, slower, and the model's attention gets diluted across thousands of tokens that are mostly irrelevant to the question being asked.
+
+The fix is simple in concept: **split the document into smaller pieces and only retrieve the pieces relevant to the question.**
+
+This process is called **chunking**, and it has a major impact on RAG quality.
+
+But chunking comes with a trade-off: splitting the text can also split the context.
+
+Let's see why.
+
+---
+
+#### What goes wrong when we chunk the text?
+
+To illustrate this, we'll use an intentionally small chunk size of 10 words.
+
+**Example text:**
+
+```text
+The Controller shall process personal data in accordance with the principles of lawfulness, fairness,
+and transparency. Processing activities include collection, storage, and erasure of data subjects'
+personal information. The data processor must implement appropriate technical measures to ensure
+data integrity and prevent unauthorised access.
+```
+
+**Chunked into 10-word pieces:**
+
+```text
+✂️  The Controller shall process personal data in accordance with the
+✂️  principles of lawfulness, fairness, and transparency. Processing activities include collection,
+✂️  storage, and erasure of data subjects' personal information. The data
+✂️  processor must implement appropriate technical measures to ensure data integrity
+✂️  and prevent unauthorised access.
+```
+
+Chunk boundaries are artificial. Documents were written for humans, not for retrieval systems. Sentences and ideas span across chunks, so splitting can separate information that belongs together.
+
+Now imagine you're only given this single chunk in isolation:
+
+```text
+processor must implement appropriate technical measures to ensure data integrity
+```
+
+And then asked a question:
+
+> "Who is responsible for ensuring data integrity?"
+
+Try to answer the question... Probably you'll say: **"The processor."** 😅
+
+But... processor of *what*? 
+
+```text
+🧐 I did a small experiment, gave that exact same chunk to an LLM
+and asked it what the possible meanings of "Processor" were.
+It answered:
+
+Based on that specific compliance and security context, 
+here are the various English terms for "processor":
+
+- Data Processor: The external entity/company handling the data.
+- Third-Party Processor: An outside vendor or partner processing the data.
+- Sub-processor: Another vendor hired by the main processor to help.
+- Data Processing Unit / Module: The software component running the data operations.
+- Cryptographic / Secure Processor: The hardware chip protecting the data at the physical level.
+```
+
+The subject is floating. The chunk contains the action, but not enough context to ground it.
+
+Now lets reveal the chunk just before it:
+
+```text
+storage, and erasure of data subjects' personal information. The data processor
+```
+
+Something clicks. "Data processor" appears here. "Data integrity" appears in the next chunk. Both refer to the same responsibility — but neither chunk alone is enough to answer the question confidently.
+
+> This is the real problem with chunking: not that information disappears, but that it gets fragmented into pieces that are almost useful, and "almost" is not enough.
+
+[⬆️ Back to Part 02](#part-2)
+
+---
+
+#### The fix: overlap
+
+Instead of splitting text into completely independent chunks, we allow a small portion of each chunk to be shared with the next one. Yes, it introduces redundancy — but that redundancy is exactly what prevents context from being lost at the boundary.
+
+**Same text, now with 4-word overlap:**
+
+```text
+✂️  The Controller shall process personal data in accordance with the
+✂️  in accordance with the principles of lawfulness, fairness, and transparency.
+✂️  lawfulness, fairness, and transparency. Processing activities include collection, storage, and
+✂️  include collection, storage, and erasure of data subjects' personal information.
+✂️  data subjects' personal information. The data processor must implement appropriate
+✂️  processor must implement appropriate technical measures to ensure data integrity
+✂️  to ensure data integrity and prevent unauthorised access.
+```
+
+Now look at these two chunks side by side:
+
+```text
+data subjects' personal information. The data processor must implement appropriate
+processor must implement appropriate technical measures to ensure data integrity
+```
+
+💡 Both contain the word "processor". A retrieval system searching for that term will pull both — and together, they reconstruct the full picture. 🖼️
+
+In this project we use `chunk_size=800` and `overlap=100` (in characters, not words — more on that below 👇). The numbers are larger, but the principle is exactly the same: preserve context across chunk boundaries.
+
+
+---
+
+#### How you measure a chunk matters
+
+Now that you understand *why* overlap exists, there's a second question: *what unit do you measure a chunk in?*
+
+In `app_v2.py` we measure by **character count** (`chunk_size=800, overlap=100`). Simple, predictable, works with any text. But it's not the only option:
+
+| Strategy | Unit | Pros | Cons |
+|---|---|---|---|
+| **Size-based** | Characters | Works with any content, easy to implement | May cut words or sentences mid-way |
+| **Word-based** | Words | More natural boundaries | Tricky with non-Latin scripts — Thai, Chinese, and Japanese don't use spaces to separate words, so "word" becomes ambiguous |
+| **Sentence-based** | Sentences | Preserves meaning per unit | Requires reliable sentence detection; punctuation varies across languages and styles |
+| **Structure-based** | Headers / sections | Best semantic boundaries | Requires the document to be well-structured (markdown, HTML) — raw PDFs rarely are |
+
+> 💡 Notice something: when "processor" appeared without structure around it, even an LLM couldn't pin down its meaning. Structure is what turns raw data into information — whether the reader is a chunking algorithm, a retrieval system, or a language model parsing a prompt. The same idea explains why well-structured prompts get better LLM results: explicit markers signal where one idea ends and another begins.
+
+For this project, character-based chunking with overlap is the right default: legal PDFs are plain text after extraction, with no guaranteed structure to split on.
+
+---
+
+### Code walkthrough
+
+> 📄 **File:** `app_v2.py`
+
+#### The chunk function
+
+```python
+def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[str]:
+    chunks, start = [], 0
+    while start < len(text):
+        end = min(start + chunk_size, len(text))
+        chunks.append(text[start:end])
+        start = end - overlap if end < len(text) else len(text)
+    return [c for c in chunks if c.strip()]
+```
+
+Walking through it step by step:
+
+- `start` tracks where the current chunk begins — it starts at 0 and advances each iteration
+- `end = min(start + chunk_size, len(text))` — takes 800 characters, or less if we're near the end of the document
+- `chunks.append(text[start:end])` — slices that window of text and stores it
+- `start = end - overlap` — here's where the overlap happens: instead of jumping to `end`, we step back by `overlap` characters so the next chunk begins 100 characters before the current one ends
+- The final filter `[c for c in chunks if c.strip()]` drops any chunk that's empty or whitespace-only — can happen at the tail of a document
+
+---
+
+#### Testing it
+
+```python
+file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+pdf_text = extract_text_from_pdf(file_path)
+pdf_text_chunks = chunk_text(pdf_text)
+
+print("🍟 " * 40)
+print("                     PDF TEXT CHUNKS\n")
+for chunk_no, chunk in enumerate(pdf_text_chunks, start=1):
+    print(f"👉 {chunk_no}) {chunk}\n")
+print("🍟 " * 40, '\n')
+
+print(f"📦 Total chunks: {len(pdf_text_chunks)}")
+print(f"📏 Avg chunk size: {sum(len(c) for c in pdf_text_chunks) / len(pdf_text_chunks):.0f} chars\n")
+```
+
+This prints every chunk with its number, then a summary of how many chunks were produced and their average size. Useful for sanity-checking that the document was split as expected before wiring up any retrieval logic.
+
+[⬆️ Back to Part 02](#part-2)
+
+---
+
+### Run it
+
+> ⚠️ On macOS / Linux, replace `py` with `python` or `python3`.
+
+```bash
+py app_v2.py
+```
+
+You should see all 13 chunks printed, then a summary:
+
+```
+(venv) PS C:\Users\hugof\Documents\WORK\PDFs\PublicRepos\legal-doc-rag-summarizer> py .\app_v2.py                                                                  
+🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 
+                     PDF TEXT CHUNKS
+
+👉 1) SYNTHETIC LEGAL DOCUMENT
+RAG Danger Zone Test — Ambiguous Sections
+SYNTHETIC DOCUMENT — FOR RAG PIPELINE TESTING PURPOSES ONLY. This document contains intentionally
+ambiguous language designed to stress-test retrieval systems. It does not represent any real legal agreement.
+## Section 1: Data Processing and Data Protection
+[AMBIGUITY TYPE: Same keyword — different legal domains]
+1.1 Personal Data Processing
+The Controller shall process personal data in accordance with the principles of lawfulness, fairness,
+and transparency. Processing activities include collection, storage, and erasure of data subjects'
+personal information. The data processor must implement appropriate technical measures to ensure
+data integrity and prevent unauthorised access. Any transfer of personal data to third coun
+
+👉 2) o ensure
+data integrity and prevent unauthorised access. Any transfer of personal data to third countries
+requires adequate safeguards under applicable data protection regulation (Ref: DPR-2024-EU-001).
+1.2 Industrial Data Processing
+The Operator shall process raw material data using certified industrial processing units. Processing
+cycles must not exceed 48 hours per batch. Data logs from processing equipment must be retained
+for audit purposes for a minimum of five years. Any transfer of processed materials to third-party
+facilities requires prior written consent. The Operator is responsible for ensuring processing integrity
+and preventing contamination of data streams. Processing failures must be reported under incident
+code INC-PROC-0x44A.
+1.3 Financial Data Processing
+Transaction proc
+
+👉 3)  must be reported under incident
+code INC-PROC-0x44A.
+1.3 Financial Data Processing
+Transaction processing systems shall handle payment data in compliance with PCI-DSS standards.
+Processing latency must remain below 200ms for standard operations. Failed processing attempts
+must trigger automated rollback procedures. Data processed through the payment gateway
+(Gateway ID: PGW-7731-B) is subject to quarterly audit by an independent third party. Processing
+fees are non-refundable once the transaction enters the cleared state.
+## Section 2: Termination Rights and Termination Procedures
+[AMBIGUITY TYPE: Same term — contract law vs. employment law vs. system shutdown]
+2.1 Contract Termination
+Either party may terminate this Agreement upon thirty (30) days written notice. Termination for
+cause ma
+
+👉 4) er party may terminate this Agreement upon thirty (30) days written notice. Termination for
+cause may occur immediately upon written notice if the breaching party fails to cure the material
+breach within fifteen (15) days of notification. Upon termination, all licences granted herein shall
+cease, and the receiving party must return or destroy all confidential materials. Termination does not
+relieve either party of obligations accrued prior to the termination date (Case Ref:
+
+LEG-TERM-2024-089).
+2.2 Employment Termination
+The Company reserves the right to terminate employment relationships in accordance with
+applicable labour law. Termination without cause requires payment of statutory severance.
+Termination for gross misconduct may be immediate and without severance entitlement. All
+termin
+
+👉 5) nce.
+Termination for gross misconduct may be immediate and without severance entitlement. All
+terminated employees must return company property, including access credentials, within 24 hours
+of the termination notice. Termination packages are subject to approval by the Human Resources
+Committee under Policy HR-TERM-v4.2.
+2.3 System Process Termination
+Automated termination of system processes shall occur upon detection of memory threshold
+breaches exceeding 95% utilisation. The watchdog daemon (PID monitoring ref: SYS-WD-001) is
+authorised to issue SIGTERM signals to non-responsive processes. Graceful termination must be
+attempted before forced termination via SIGKILL. Termination events are logged to the central audit
+trail under error code ERR-PROC-TERM-0xDEAD. Repeated abnormal terminat
+
+👉 6)  logged to the central audit
+trail under error code ERR-PROC-TERM-0xDEAD. Repeated abnormal terminations trigger
+escalation to the on-call infrastructure team.
+## Section 3: Agent Responsibilities and Agent Conduct
+[AMBIGUITY TYPE: 'Agent' — legal agent vs. AI agent vs. real estate agent]
+3.1 Legal Agency
+An agent acting on behalf of the Principal must operate within the scope of the authority granted
+under the Power of Attorney (Document ID: POA-2024-447). The agent is bound by fiduciary duties
+and must disclose all conflicts of interest. Unauthorised actions taken by the agent outside the
+scope of granted authority shall not bind the Principal. The agent must maintain accurate records of
+all transactions conducted on behalf of the Principal and provide quarterly reporting (Form
+AG-REP-Q)
+
+👉 7) ll transactions conducted on behalf of the Principal and provide quarterly reporting (Form
+AG-REP-Q).
+3.2 AI Agent Conduct
+Autonomous AI agents deployed within this system must operate within predefined tool-use
+boundaries. Each agent is assigned a permission scope (Scope ID: AI-AGT-PERM-v2) that limits its
+ability to invoke external APIs, modify persistent storage, or initiate financial transactions. AI agents
+must log all tool calls to the central audit trail. Agents detected operating outside their permission
+scope are subject to automatic termination and incident escalation under INC-AI-BOUNDARY-001.
+Human oversight is mandatory for any agent action exceeding monetary threshold EUR 500.
+3.3 Real Estate Agent Obligations
+Licensed real estate agents must act in the best interest of their
+
+👉 8) 3.3 Real Estate Agent Obligations
+Licensed real estate agents must act in the best interest of their client throughout the property
+transaction lifecycle. Agents are prohibited from representing conflicting interests in the same
+transaction without written disclosure and informed consent from both parties. Commission
+structures must be disclosed prior to engagement (Disclosure Form: REA-DISC-2024). Agents must
+
+comply with anti-money laundering regulations and perform due diligence on all parties. Failure to
+comply may result in licence suspension under REG-REA-CONDUCT-v7.
+## Section 4: Security Protocols and Security Incidents
+[AMBIGUITY TYPE: 'Security' — cybersecurity vs. physical security vs. financial security]
+4.1 Cybersecurity
+All systems must implement multi-factor authentication a
+
+👉 9) y vs. financial security]
+4.1 Cybersecurity
+All systems must implement multi-factor authentication and encrypt data at rest using AES-256.
+Security incidents involving unauthorised access must be reported within 72 hours under GDPR
+Article 33. Penetration testing (Ref: SEC-PENTEST-2024-Q2) must be conducted bi-annually.
+Security patches classified as Critical (CVSS score >= 9.0) must be applied within 24 hours of
+release. The Security Operations Centre (SOC-ID: SOC-EU-PRIMARY) monitors all network activity
+and responds to alerts under SLA-SEC-001.
+4.2 Physical Security
+Access to restricted premises requires biometric authentication and a valid security clearance badge
+(Badge Class: SEC-BADGE-RED). Security incidents involving unauthorised physical access must
+be reported to the Facilities 
+
+👉 10) -RED). Security incidents involving unauthorised physical access must
+be reported to the Facilities Security Officer within 1 hour. CCTV footage is retained for 30 days
+under physical security policy PHY-SEC-v3. Security personnel are authorised to detain individuals
+suspected of trespassing pending law enforcement arrival. All security incidents are logged under
+incident code PHY-INC-XXXX.
+4.3 Financial Security (Collateral)
+The Borrower must provide adequate security in the form of collateral assets with a minimum
+valuation of 120% of the principal loan amount. Security interests must be registered with the
+relevant authority (Registration Ref: FIN-SEC-REG-2024). In the event of default, the Lender is
+entitled to enforce the security and liquidate collateral assets. Security over intelle
+
+👉 11) he Lender is
+entitled to enforce the security and liquidate collateral assets. Security over intellectual property
+assets requires a separate assignment agreement (Form FIN-IP-SEC-01). The security package
+must be reviewed annually and revalued by an independent appraiser.
+## Section 5: Transfer Provisions
+[AMBIGUITY TYPE: 'Transfer' — data transfer vs. asset transfer vs. employee transfer]
+5.1 Data Transfer
+Cross-border transfer of personal data to countries outside the EEA requires execution of Standard
+Contractual Clauses (SCCs) approved by the European Commission. Transfer impact assessments
+(TIA-REF: TIA-2024-007) must be completed prior to any transfer. Data transfer logs must record
+the volume, category, and recipient of each transfer. Emergency transfers required for vital interest
+
+👉 12) he volume, category, and recipient of each transfer. Emergency transfers required for vital interests
+are exempt from prior assessment but must be documented within 48 hours post-transfer.
+
+5.2 Asset Transfer
+Transfer of tangible assets between group entities requires approval from the Asset Management
+Committee (AMC-REF: AMC-TRANS-2024). Transfer pricing must comply with OECD arm's length
+principles. Each asset transfer must be documented on Form ASSET-TR-001 and countersigned by
+two authorised signatories. Transfer of assets classified as strategic (Asset Class: STR-A) requires
+Board approval. All transfers are subject to stamp duty where applicable under local tax regulations.
+5.3 Employee Transfer (TUPE)
+In the event of a relevant transfer under applicable employment transfer regulatio
+
+👉 13) e Transfer (TUPE)
+In the event of a relevant transfer under applicable employment transfer regulations, employees
+assigned to the transferred undertaking transfer automatically to the new employer. Terms and
+conditions of employment at the date of transfer are preserved. The transferor must notify affected
+employees of the transfer no less than 28 days before the transfer date (Notice Ref:
+HR-TUPE-NOT-v2). Failure to notify constitutes a breach of statutory duty. Pension obligations
+existing at the transfer date are subject to specific statutory provisions.
+END OF SYNTHETIC DOCUMENT — legal-doc-rag-summarizer test suite — v1.0
+
+🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟 🍟  
+
+📦 Total chunks: 13
+📏 Avg chunk size: 787 chars
+```
+
+13 chunks, ~787 characters each. The document is now a collection of manageable pieces instead of one wall of text.
+
+---
+
+### Conclusions
+
+We've gone from one massive prompt to 13 focused slices. This is the core shift that makes RAG possible: instead of sending everything and hoping the model finds what it needs, we'll soon be able to retrieve only what's relevant.
+
+Here's a summary of the chunking strategies covered:
+
+| Strategy | Measured by | Best for | Watch out for |
+|---|---|---|---|
+| Size-based | Characters | Any document type, simple implementation | Cuts through words and sentences |
+| Word-based | Words | Latin-script text | Non-space-separated languages (Thai, Chinese, Japanese) |
+| Sentence-based | Sentences | Readable prose | Inconsistent punctuation, multilingual text |
+| Structure-based | Headers / sections | Well-formatted markdown or HTML | Raw PDFs with no structural markers |
+
+For legal PDFs, character-based chunking with overlap is the most reliable starting point. Structure-based would give cleaner semantic boundaries — but only if the PDF extraction preserves formatting, which it often doesn't.
+
+So now we have chunks. But that raises the natural next question: how do we figure out *which* chunks are actually relevant to a given question? We'll get to that in the next part 😎.
+
+--- 
+
+> 💡 **RAG Curiosity**
+> Chunk size isn't just a technical parameter — it's a retrieval tradeoff. Smaller chunks are more precise but lose surrounding context. Larger chunks carry more context but reduce retrieval accuracy because more noise competes with the relevant signal. Most production RAG systems tune chunk size empirically, per document type, rather than setting it once and moving on.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
