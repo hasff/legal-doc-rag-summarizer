@@ -1014,6 +1014,8 @@ That's cosine similarity in plain words and numbers. In reality, those "2 coordi
 
 ⚠️ I don't want you to get the wrong idea, modern embeddings don't work exactly like the example I gave! A single number in an embedding doesn't represent just one meaning; it actually represents a pattern (learned during the model's training) that can combine multiple meanings at once, and it's practically impossible for us humans to interpret those numbers. We can't point to one number in the embedding and say "oh, this represents the relation between cat and toy cat"!
 
+🚨 One important detail: embeddings are model-specific. Each model learns its own vector space, so embeddings from different models are not compatible. Even if the dimensions match, the geometry of the space is completely different, which is why you must re-embed your entire corpus when switching models.
+
 [⬆️ **`Part 3`**](#part-3)
 
 ---
@@ -1194,11 +1196,229 @@ This is exactly why `danger_zone_rag_test.pdf` was built the way it was: every s
 
 #### ⚡ Quick Navigation: [⬅️ Part 03](#part-3) | [Part 05 ➡️](#part-5)
 
-> 📒 **What you'll learn:** Why semantic search alone can miss exact terms, and how BM25 fills that gap.
+> 📒 **What you'll learn:** Why semantic search alone misses exact terms, and how BM25 fixes that by rewarding rare, specific words instead of common ones.
 
-_TODO_
+---
+
+### Theory
+
+In Part 03 we saw embeddings struggle with a specific kind of ambiguity. The word "agent" shows up in a legal context, a real estate context, and an AI context, all in the same document (`danger_zone_rag_test.pdf`). Semantic search understands meaning, but it doesn't guarantee that an exact term you typed will actually appear in the chunks it returns.
+
+**BM25 (Best Match 25)** solves a different problem: finding chunks that contain your exact words, weighted by how rare those words are.
+
+Here's the logic, step by step:
+
+1. **Tokenize the query.** Split it into individual words.
+2. **Count how often each term appears across all chunks.** Common words like "the" or "a" show up everywhere. Specific words like "AI" or "agent" show up less.
+3. **Weight terms by rarity.** Frequent terms get low importance. Rare terms get high importance. This is the core insight: if a word appears in almost every chunk, it tells you almost nothing about relevance.
+4. **Rank chunks by how many high-weight terms they contain.**
+
+The net effect: BM25 doesn't understand meaning or semantic similarity. It relies entirely on lexical matching: exact words and how informative those words are within the corpus.
+
+Think of BM25 scoring a single chunk at a time: it checks the query terms against that chunk, while using statistics from the full corpus to estimate how informative each term is.
+
+Let's look at a simplified version to understand the basic idea (this is not what we use in production code; it's purely illustrative):
+
+```python
+# 💡 BM25 is more sophisticated than this!
+def bm25_score_sketch(query_terms, current_chunk_terms, corpus_chunks):
+    score = 0
+
+    for term in query_terms:
+        # How rare is this term across the entire corpus?
+        rarity = calculate_rarity(term, corpus_chunks)
+
+        # How often does it appear in this specific chunk?
+        frequency = current_chunk_terms.count(term)
+        adjusted_frequency = frequency / (frequency + 1)
+
+        score += rarity * adjusted_frequency
+
+    return score
+```
+
+> This sketch captures the intuition. Real BM25 additionally accounts for document length.
+
+In practice, nobody implements BM25 by hand in production. There's a well-tested formula behind it (term frequency, inverse document frequency, length normalization), and a solid library already does the math. That's what we use here.
+
+---
+
+### Install dependencies
+
+> 💡 This part introduces `rank-bm25`. If you followed the setup step and ran `pip install -r requirements.txt`, you already have it. If not, install it now:
+
+```bash
+pip install rank-bm25
+```
+
+We're not implementing the BM25 algorithm ourselves. We use `rank-bm25`, a small, focused library that already does it correctly. That's the right call here: BM25 is a well-defined, well-tested formula, and reinventing it adds risk without adding learning value.
+
+---
+
+### Code walkthrough
+📄 File: `app_v4.py`
+
+#### Step 1 — Vector search vs BM25, side by side
+
+```python
+file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+
+pdf_text = extract_text_from_pdf(file_path)
+pdf_text_chunks = chunk_text(pdf_text)
+
+question = f"""Hey claude can you explain to me whats up with the 'AI agent' info in the doc? 
+Also tell me in what parts the document it appears."""
+
+chunks_embeddings = embed_texts(pdf_text_chunks)  # 🐍
+question_embeddings = embed_query(question)       # 💬
+
+vector_search_result = vector_search(question_embeddings, chunks_embeddings) # ⚡
+
+for chunk_idx, score in vector_search_result:
+    print(f"🎯 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
+
+
+chunks_tokens = tokenize_texts(pdf_text_chunks)   # 🐍
+bm25 = BM25Okapi(chunks_tokens) # indexing        # 🎃
+query_tokens = tokenize_query(question)           # 💬
+
+bm25_search_result = bm25_search(query_tokens, bm25)                         # ⚡
+for chunk_idx, score in bm25_search_result:
+    print(f"🔍 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
+```
+
+The first half should look familiar, it's the same vector search from Part 03: `embed_texts 🐍` to prepare the chunks, `embed_query 💬` to prepare the question, `vector_search ⚡` to find the closest matches.
+
+The BM25 half follows the same shape.
+
+Let's look at the two blocks side by side:
+
+| | Embeddings (Part 03) | BM25 (Part 04) | Role |
+|---|---|---|---|
+| 🐍 | `embed_texts(pdf_text_chunks)` | `tokenize_texts(pdf_text_chunks)` | Prepares all chunks |
+| 🎃 | *(no equivalent)* | `BM25Okapi(chunks_tokens)` | Builds the index |
+| 💬 | `embed_query(question)` | `tokenize_query(question)` | Prepares the question |
+| ⚡ | `vector_search(question_embeddings, chunks_embeddings)` | `bm25_search(query_tokens, bm25)` | Searches |
+
+> 💡 **One extra step for BM25** <br>
+> `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `BM25Okapi(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`.
+
+Same data in, same data out, same order of operations. The only thing that changes is what happens inside each function, which is what Step 2 covers.
 
 [⬆️ **`Part 4`**](#part-4)
+
+---
+
+#### Step 2 — Function implementations
+
+```python
+# BM25
+from rank_bm25 import BM25Okapi
+
+# ── Tokenizing ────────────────────────────────────────────────────────────────
+def tokenize_texts(texts: list[str]) -> list[list[str]]:
+    return [c.lower().split() for c in texts]
+
+def tokenize_query(query: str) -> list[str]:
+    return query.lower().split()
+
+# ── BM25 search ───────────────────────────────────────────────────────────────
+def bm25_search(query_tokens: list[str], bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
+    scores = bm25.get_scores(query_tokens)
+    return sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[:k]
+```
+
+`rank-bm25` handles the heavy lifting described in the theory section. `BM25Okapi` prepares the corpus for scoring by computing term statistics. It captures how often each term appears across all documents and assigns higher weight to rare terms than to common ones.
+
+`tokenize_texts` and `tokenize_query` don't do anything algorithmically interesting, they just split text into lowercase tokens. Their value is structural: they keep the BM25 path shaped exactly like the embeddings path, so chunks and queries are always prepared the same way before comparison.
+
+`bm25_search` then plays the same role as `vector_search`. It takes the already-prepared query tokens, runs them against the index, and returns the top `k` chunks ranked by score.
+
+> 💡 **Worth repeating: the extra index-building step** <br>
+> The table above already shows it, but it's easy to skim past: `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `BM25Okapi(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`. This is the one place where the parallel breaks, so it's worth pointing at twice.
+
+> ⚠️ **A note on tokenization** <br>
+> It is worth mentioning that `tokenize_texts` and `tokenize_query` use a naive `.split()`, which assumes words are separated by spaces. Languages like Chinese, Japanese, or Thai don't work that way, they would need a dedicated tokenizer instead, so you can see how complex this can become.
+
+---
+
+#### Testing with a shorter query
+
+```python
+print('🧐' * 50)
+
+query_tokens = tokenize_query('AI Agent')
+bm25_search_result = bm25_search(query_tokens, bm25)
+for chunk_idx, score in bm25_search_result:
+    print(f"🔍 {score} => {pdf_text_chunks[chunk_idx]}\n\n")   
+```
+
+This runs BM25 a second time, against the same index, with a much shorter query: `'AI Agent'` instead of the full question.
+
+BM25 scores every term in the query, including words like "Hey", "doc", and "explain" that have nothing to do with what we're actually looking for. A long, conversational question dilutes the weight of the terms that matter. The short query strips that noise away and lets BM25 do what it's good at: finding exact term matches.
+
+> ⚠️ **What to expect** <br>
+> Compare the three result sets. Vector search handles the natural question reasonably well because it reasons about meaning, not exact words. BM25 with the full question performs worse, the important terms get buried. BM25 with `'AI Agent'` performs much better, closer to what vector search found. This contrast is the setup for Part 05, where hybrid retrieval combines both strengths.
+
+---
+
+### Run it
+
+```bash
+py app_v4.py
+```
+
+The output below is trimmed to the parts that matter.
+
+```
+🎯 0.513 => 3.2 AI Agent Conduct
+Autonomous AI agents deployed within this system must operate within predefined tool-use
+boundaries. Each agent is assigned a permission scope (Scope ID: AI-AGT-PERM-v2)...
+
+🎯 0.369 => ## Section 3: Agent Responsibilities and Agent Conduct
+[AMBIGUITY TYPE: 'Agent' — legal agent vs. AI agent vs. real estate agent]
+3.1 Legal Agency...
+
+
+🔍 8.640 => SYNTHETIC LEGAL DOCUMENT
+RAG Danger Zone Test — Ambiguous Sections
+SYNTHETIC DOCUMENT — FOR RAG PIPELINE TESTING PURPOSES ONLY...
+
+🔍 6.298 => e Transfer (TUPE)
+In the event of a relevant transfer under applicable employment transfer regulations...
+
+🧐🧐🧐🧐🧐 (full query vs short query separator)
+
+🔍 4.486 => 3.2 AI Agent Conduct
+Autonomous AI agents deployed within this system must operate within predefined tool-use
+boundaries...
+
+🔍 3.739 => ## Section 3: Agent Responsibilities and Agent Conduct
+[AMBIGUITY TYPE: 'Agent' — legal agent vs. AI agent vs. real estate agent]
+3.1 Legal Agency...
+```
+
+Three results worth pointing at:
+
+1. **Vector search (🎯)** correctly puts the AI Agent clause first. Good. Embeddings did their job here.
+2. **BM25 with the full natural-language question (🔍, first batch)** completely misses it. The top result is the document's intro paragraph, the second is about employee transfers. Why? The question is long: *"Hey claude can you explain to me whats up with the 'AI agent' info in the doc? Also tell me in what parts the document it appears."* Words like "doc", "tell", "parts", "appears" all get counted, and they dilute the weight that should go to "AI" and "agent". BM25 doesn't understand intent, it counts words.
+3. **BM25 with the short query `'AI Agent'` (🔍, second batch)** nails it. The exact same clause vector search found comes back first, this time with a real signal behind it instead of a coincidence.
+
+> ⚠️ **The takeaway isn't "BM25 is broken".** It's that BM25 is only as good as the query you feed it. A natural-language question written for a chatbot is not automatically a good BM25 query. This matters once we start combining methods in the next part.
+
+---
+
+### Conclusions
+
+- BM25 finds exact terms well, when the query isn't drowned in noise words.
+- Long, natural-language questions (the kind a real user actually types) hurt BM25 more than they hurt semantic search, because every extra word competes for weight.
+- Neither method wins outright here. Vector search handled the long question better. BM25 handled the short, precise query better.
+- This is exactly the setup for Part 05: instead of picking one, we run both in parallel and merge the results. Each one covers the other's blind spot.
+
+---
+
+> 💡 **RAG curiosity:**
+Did you know BM25 has been the default lexical ranking function in Lucene and Elasticsearch for about a decade. Even in modern AI-powered retrieval systems, it is commonly used alongside vector search rather than being replaced by it.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
