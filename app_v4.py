@@ -64,10 +64,16 @@ def vector_search(query_emb: list[float], embeddings: list[list[float]], k: int 
     scores = [(i, cosine_similarity(query_emb, emb)) for i, emb in enumerate(embeddings)]
     return sorted(scores, key=lambda x: x[1], reverse=True)[:k]
 
+# ── Tokenizing ────────────────────────────────────────────────────────────────
+def tokenize_texts(texts: list[str]) -> list[list[str]]:
+    return [c.lower().split() for c in texts]
+
+def tokenize_query(query: str) -> list[str]:
+    return query.lower().split()
+
 # ── BM25 search ───────────────────────────────────────────────────────────────
-def bm25_search(query: str, bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
-    tokens = query.lower().split()
-    scores = bm25.get_scores(tokens)
+def bm25_search(query_tokens: list[str], bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
+    scores = bm25.get_scores(query_tokens)
     return sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[:k]
 
 # 🤖── Claude calls ────────────────────────────────────────────────────────────
@@ -115,15 +121,17 @@ if __name__ == "__main__":
         print(f"🎯 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
 
 
-    tokenized = [c.lower().split() for c in pdf_text_chunks]
-    bm25 = BM25Okapi(tokenized)
+    chunks_tokens = tokenize_texts(pdf_text_chunks)
+    bm25 = BM25Okapi(chunks_tokens) # indexing
+    query_tokens = tokenize_query(question)
 
-    bm25_search_result = bm25_search(question, bm25)
+    bm25_search_result = bm25_search(query_tokens, bm25)
     for chunk_idx, score in bm25_search_result:
         print(f"🔍 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
 
     print('🧐' * 50)
 
-    bm25_search_result = bm25_search('AI Agent', bm25)
+    query_tokens = tokenize_query('AI Agent')
+    bm25_search_result = bm25_search(query_tokens, bm25)
     for chunk_idx, score in bm25_search_result:
         print(f"🔍 {score} => {pdf_text_chunks[chunk_idx]}\n\n")    

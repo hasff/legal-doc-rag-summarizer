@@ -65,10 +65,16 @@ def vector_search(query_emb: list[float], embeddings: list[list[float]], k: int 
     scores = [(i, cosine_similarity(query_emb, emb)) for i, emb in enumerate(embeddings)]
     return sorted(scores, key=lambda x: x[1], reverse=True)[:k]
 
+# ── Tokenizing ────────────────────────────────────────────────────────────────
+def tokenize_texts(texts: list[str]) -> list[list[str]]:
+    return [c.lower().split() for c in texts]
+
+def tokenize_query(query: str) -> list[str]:
+    return query.lower().split()
+
 # ── BM25 search ───────────────────────────────────────────────────────────────
-def bm25_search(query: str, bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
-    tokens = query.lower().split()
-    scores = bm25.get_scores(tokens)
+def bm25_search(query_tokens: list[str], bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
+    scores = bm25.get_scores(query_tokens)
     return sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[:k]
 
 # ── Reciprocal Rank Fusion ────────────────────────────────────────────────────
@@ -89,7 +95,8 @@ def rrf_merge(
 def hybrid_retrieve(query: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi, top_k: int = 5) -> list[str]:
     query_emb    = embed_query(query)
     vec_results  = vector_search(query_emb, embeddings, k=top_k * 2)
-    bm25_results = bm25_search(query, bm25, k=top_k * 2)
+    query_tokens = tokenize_query(query)
+    bm25_results = bm25_search(query_tokens, bm25, k=top_k * 2)
     best_indices = rrf_merge(vec_results, bm25_results, top_k=top_k)
     return [chunks[i] for i in best_indices]
 
