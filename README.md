@@ -1357,8 +1357,13 @@ This runs BM25 a second time, against the same index, with a much shorter query:
 
 BM25 scores every term in the query, including words like "Hey", "doc", and "explain" that have nothing to do with what we're actually looking for. A long, conversational question dilutes the weight of the terms that matter. The short query strips that noise away and lets BM25 do what it's good at: finding exact term matches.
 
+> 💡 **Confirmed later:** even after fixing an unrelated tokenization bug in Part 05 (see the 🧐 Reflection there), the long question alone, noise words and all, still wasn't enough to put the right chunk at rank 1 with BM25 alone. Dilution by itself is a real, independent problem.
+
 > ⚠️ **What to expect** <br>
 > Compare the three result sets. Vector search handles the natural question reasonably well because it reasons about meaning, not exact words. BM25 with the full question performs worse, the important terms get buried. BM25 with `'AI Agent'` performs much better, closer to what vector search found. This contrast is the setup for Part 05, where hybrid retrieval combines both strengths.
+
+> 🧐 **Reflection** <br>
+> Okay, confession time: when I first wrote `part 04`, I totally missed the real issue with that original question. It was only while drafting `part 05` that it hit me, like one of those "ohhh, that’s why it wasn’t working" moments. And honestly? I only figured it out because the BM25 results were so weird that I couldn’t stop poking at them. Turns out, there was a tiny detail in the query that should’ve screamed at me from the start. (Spoiler: you’ll see it in `part 05`, and yes, I did facepalm when I realized. 😅)
 
 ---
 
@@ -1430,11 +1435,208 @@ Did you know BM25 has been the default lexical ranking function in Lucene and El
 
 #### ⚡ Quick Navigation: [⬅️ Part 04](#part-4) | [Part 06 ➡️](#part-6)
 
-> 📒 **What you'll learn:** How to combine vector search and BM25 using Reciprocal Rank Fusion for better retrieval accuracy.
+> 📒 **What you'll learn:** How to merge vector search and BM25 into a single ranking using Reciprocal Rank Fusion (RRF).
 
-_TODO_
+---
+
+### Theory
+
+In Part 03 we had vector search. In Part 04 we had BM25. Neither one is enough on its own.
+
+Vector search understands meaning but gets confused by words with multiple senses, like "agent." BM25 finds exact terms but has no idea what a sentence actually means.
+
+The fix: run both, then merge the results.
+
+> 💡 **Where does the name come from?**
+> "Reciprocal" just means the mathematical reciprocal: 1 divided by something. "Rank" is the position a chunk got in a results list (1st, 2nd, 3rd...). "Fusion" is merging. Put together: a way to fuse rankings using their reciprocals. No sci-fi involved. 🛸
+
+The core idea: instead of comparing raw scores (cosine similarity and BM25 scores live on completely different scales), RRF only looks at **position**. A chunk that ranks high in both lists wins, even if the underlying numbers can't be compared directly.
+
+---
+
+### Code walkthrough
+
+> 📄 **File:** `app_v5.py`
+
+#### Step 1 — RRF merge and hybrid retrieval
+
+```python
+# ── Reciprocal Rank Fusion ────────────────────────────────────────────────────
+def rrf_merge(
+    vector_results: list[tuple[int, float]],
+    bm25_results:   list[tuple[int, float]],
+    k_rrf: int = 60, # 👽
+    top_k: int = 5
+) -> list[int]:
+    scores: dict[int, float] = {}
+    for rank, (idx, _) in enumerate(vector_results):
+        scores[idx] = scores.get(idx, 0) + 1 / (k_rrf + rank + 1) # 🍕
+    for rank, (idx, _) in enumerate(bm25_results):
+        scores[idx] = scores.get(idx, 0) + 1 / (k_rrf + rank + 1) # 🍕
+    return [idx for idx, _ in sorted(scores.items(), key=lambda x: x[1], reverse=True)][:top_k]
+
+# ── Hybrid retrieval ──────────────────────────────────────────────────────────
+def hybrid_retrieve(query: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi, top_k: int = 5) -> list[str]:
+    query_emb    = embed_query(query)
+    vec_results  = vector_search(query_emb, embeddings, k=top_k * 2) # ⚓
+    query_tokens = tokenize_query(query)
+    bm25_results = bm25_search(query_tokens, bm25, k=top_k * 2)      # ⚓
+    best_indices = rrf_merge(vec_results, bm25_results, top_k=top_k)
+    return [chunks[i] for i in best_indices]
+```
+
+**`rrf_merge`:** for every chunk index, we add `1 / (k_rrf + rank + 1) 🍕` to its score, once per list it appears in. A chunk ranked 1st contributes more than one ranked 5th. A chunk that shows up in both lists gets two contributions added together, which is exactly how it climbs to the top.
+
+`k_rrf 👽` is a smoothing constant. The higher it is, the less difference rank position 1 vs rank position 5 makes. 60 is the standard production default. We're keeping it here because with real scores the smoothing actually matters.
+
+**`hybrid_retrieve`: Why `top_k * 2 ⚓` going into each search?**
+
+We want the final answer to have `top_k` chunks. But RRF needs *room to compare*. If we only fetched the top 5 from each engine, a chunk that vector search ranked 6th (just outside the cut) would never get a chance to climb back up via BM25 support. Fetching double the candidates from each engine gives RRF a wider pool to find real overlaps in, before trimming down to the final `top_k`.
+
+> ⚠️ This means `hybrid_retrieve` does more search work under the hood than either method alone, twice as many candidates per engine, plus the merge step itself.
+
+---
+
+#### Step 2 — Comparing all three methods side by side
+
+```python
+file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+
+pdf_text = extract_text_from_pdf(file_path)
+pdf_text_chunks = chunk_text(pdf_text)
+
+question = f"""Hey claude can you explain to me whats up with the 'AI agent' info in the doc? 
+Also tell me in what parts the document it appears."""
+
+chunks_embeddings = embed_texts(pdf_text_chunks)   
+question_embeddings = embed_query(question)
+
+vector_search_result = vector_search(question_embeddings, chunks_embeddings)
+
+for chunk_idx, score in vector_search_result:
+    print(f"🎯 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
+
+
+tokenized = tokenize_texts(pdf_text_chunks)
+bm25 = BM25Okapi(tokenized)
+query_tokens = tokenize_query(question)
+
+bm25_search_result = bm25_search(query_tokens, bm25)
+for chunk_idx, score in bm25_search_result:
+    print(f"🔍 {score} => {pdf_text_chunks[chunk_idx]}\n\n")
+
+print('🧐' * 50)
+
+hybrid_search_result = hybrid_retrieve(question, pdf_text_chunks, chunks_embeddings, bm25)
+for chunk_rank, chunk in enumerate(hybrid_search_result, start=1):
+    print(f"🎯 + 🔍 {chunk_rank} => {chunk}\n\n")
+```
+
+Same question, three methods, run back to back. The whole point of this test is to put vector-only, BM25-only, and hybrid side by side and watch what each one actually picks.
 
 [⬆️ **`Part 5`**](#part-5)
+
+---
+
+### Run it
+
+```bash
+py app_v5.py
+```
+
+Full output, top 5 results per method. Each engine prints its own score below its label, but those numbers aren't directly comparable to each other. What actually feeds into RRF is the rank position in each list, not the score itself, since the whole idea behind RRF is to abstract away from the different scales each ranking algorithm uses.
+
+**🎯 Vector search**
+
+```
+1) 0.513 → 3.2 AI Agent Conduct (AI agents, permission scope, tool-use boundaries) ✅
+2) 0.369 → Section 3 intro (legal/AI/real-estate agent ambiguity callout)
+3) 0.328 → 3.3 Real Estate Agent Obligations
+4) 0.269 → Section 5 Transfer Provisions (data transfer / IP security)
+5) 0.235 → Security incidents (physical access + financial collateral)
+```
+
+**🔍 BM25**
+
+```
+1) 8.640 → Section 1 Data Processing (personal data, GDPR-style) ❌
+2) 6.298 → TUPE employment transfer ❌
+3) 5.000 → Security incidents (physical access + financial collateral)
+4) 4.520 → 3.3 Real Estate Agent Obligations
+5) 4.416 → Termination clauses (contract + employment) ❌
+```
+
+**🎯 + 🔍 Hybrid (RRF)**
+
+```
+1) AI Agent Conduct (3.2) ✅
+2) Section 1 Data Processing
+3) 3.3 Real Estate Agent Obligations
+4) Security incidents (physical access + financial collateral)
+5) Section 3 intro (legal/AI/real-estate agent ambiguity callout)
+```
+
+> 📄 **Full chunk text, the one that actually matters:**
+> ```
+> 3.2 AI Agent Conduct
+> Autonomous AI agents deployed within this system must operate within predefined tool-use
+> boundaries. Each agent is assigned a permission scope (Scope ID: AI-AGT-PERM-v2) that limits its
+> ability to invoke external APIs, modify persistent storage, or initiate financial transactions. AI agents
+> must log all tool calls to the central audit trail. Agents detected operating outside their permission
+> scope are subject to automatic termination and incident escalation under INC-AI-BOUNDARY-001.
+> Human oversight is mandatory for any agent action exceeding monetary threshold EUR 500.
+> ```
+
+> ⚠️ **A quick reminder before reading too much into these numbers.**
+> `danger_zone_rag_test.pdf` is not a real contract. It's a synthetic document, built on purpose with overlapping ambiguous terms ("agent," "transfer," "security," "termination") spread across unrelated legal domains. That ambiguity is what trips up vector search specifically.
+>
+> #### Remember my "🧐 **Reflection**"  from `Part 04`?
+> So, here's the actual culprit: the query had `"AI agent"` in quotes, and our naive tokenizer (`.lower().split()`) didn't bother stripping punctuation. That tiny apostrophe corrupted both edges of the phrase, `'ai` and `agent'`, so BM25 was looking for tokens that didn't exist in the document. No match = no magic. With that link broken, BM25's top scores ended up driven by whatever generic terms still had some weight left, words like "document" or "info", not by anything meaningful. Moral of the story? Always sanitize your tokens. Lesson learned. 😅
+
+> 🧪 **Try it yourself**
+> Go back to the original query in `app_v5.py`, strip the quotes from `"AI agent"`, and rerun it. Compare the BM25-only output before and after.
+>
+> Stripping the quotes fixes the broken tokens, `'ai` and `agent'` become `ai` and `agent` again, so BM25 can finally match them. But run it and look closely: BM25 alone still doesn't put `AI Agent Conduct` at rank 1. It lands at rank 2, behind the document's own intro paragraph. Why? Because `agent` is not a rare term in this corpus, it shows up in the legal, real estate, and AI sections alike, so its score contribution is low
+ no matter how clean the tokenization is. The intro paragraph wins on terms like "synthetic," "document," and "ambiguous," which happen to be rarer here.
+>
+> This is the real punchline: fixing tokenization removes the apostrophe bug, but it doesn't make BM25 understand that this chunk is the relevant one. That distinction still comes from vector search. Hybrid retrieval is what actually nails rank 1, by combining BM25's exact match with the semantic signal vector search provides.
+
+<br>
+
+
+| Rank | Vector only | BM25 only | Hybrid (RRF) |
+|---|---|---|---|
+| 1 | AI Agent Conduct (3.2) ✅ | Section 1: Data Processing ❌ | AI Agent Conduct (3.2) ✅ |
+| 2 | Section 3 intro (agent ambiguity) | TUPE employment transfer ❌ | Section 1: Data Processing |
+| 3 | Real Estate Agent Obligations | Security incidents (physical/financial) | Real Estate Agent Obligations |
+| 4 | Section 5 Transfer Provisions | Real Estate Agent Obligations | Security incidents (physical/financial) |
+| 5 | Security incidents (physical/financial) | Termination clauses ❌ | Section 3 intro (agent ambiguity) |
+
+---
+
+### Conclusions
+
+- **`AI Agent Conduct (3.2)`** won hybrid rank 1 purely on vector strength. This chunk never even tried to compete in BM25’s top 5, because, thanks to that sneaky apostrophe in `"AI agent"`, BM25 was looking for `agent'` instead of `agent`. So yeah, this is 100% vector search carrying the team here. No collaboration, just a solo win.
+
+- **`Real Estate Agent Obligations`** is the actual teamwork example: vector rank 3, BM25 rank 4, same chunk, two different signals pointing at it. That's RRF rewarding overlap exactly as intended.
+
+- **`Section 1: Data Processing`** at hybrid rank 2? That’s BM25’s fault.
+This chunk was BM25’s top pick, not because it was relevant, but because the tokenizer broke the query, and BM25 ended up focusing on stopwords like "personal" and "document". Vector search didn’t even rank it in its top 5. Yet here it is, at #2 in hybrid, proving that even a broken signal can drag a chunk up if it’s loud enough.
+
+- **`Security incidents`**  at hybrid rank 4: the quiet consensus.
+Vector rank 5, BM25 rank 3, both engines agreed this chunk was somehow relevant, even if neither was super confident. RRF gave it a fair shot, and it landed in the middle. Not a star, but not noise either.
+
+- **`Section 3 intro`** the adversarial document strikes again.
+This PDF was designed to trip up retrieval: "agent" as legal, AI, and real estate, all in the same section. Even hybrid retrieval, with RRF working perfectly, still has noise at ranks 2 and 5. Lesson: Garbage in, garbage out, no matter how fancy your fusion algorithm is. (But at least hybrid retrieval tries to clean it up.)
+
+> 💡 With a normal, non-adversarial document, hybrid retrieval alone would likely be enough. Here it's straining against a document engineered to confuse it, which is exactly what `danger_zone_rag_test.pdf` is for.
+
+And notice: all of this happened without calling Claude once. Pure retrieval, pure math. Claude only enters the picture in the next part, when we turn these retrieved chunks into an actual risk assessment.
+
+---
+
+> 💡 **RAG curiosity:**
+Why 60 specifically for `k_rrf`? It's empirical, not theoretical. The original RRF paper didn't derive it from a mathematical proof; it was simply a value that performed well across benchmark evaluations. More than 15 years later, many production systems still use 60 as the default because it remains a robust choice across different datasets and retrieval setups.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
