@@ -1650,9 +1650,206 @@ Why 60 specifically for `k_rrf`? It's empirical, not theoretical. The original R
 
 > 📒 **What you'll learn:** How to make Claude return structured JSON using assistant prefill, and how to build a risk scoring feature on top of it.
 
-_TODO_
+---
+
+### Theory
+
+This part intentionally skips both vector search and BM25 search. The danger score works directly on the document's chunks, with no user question to embed and no index to query. Retrieval comes back in Part 07, answering specific questions and simplifying clauses using the hybrid search built in Part 05. Here, we start building the feature that actually matters for the final app: turning a contract into a risk score.
+
+`compute_danger_score` does not run over the full corpus. It only looks at the first 20 chunks.
+
+> ⚠️ **Note on scope.** With small documents like the ones used in this tutorial, this has no real effect. With longer contracts, this means the score is based on the beginning of the document only. Worth knowing before you trust this on a 100-page lease.
+
+The other key piece of this part is a prompting technique to force valid JSON output:
+
+1. The prompt ends with an explicit instruction: *"Return ONLY valid JSON, no markdown, no backticks, no explanation."* The end of a prompt carries more weight than the middle, so this placement is intentional.
+2. The conversation is prefilled with an assistant message that already contains `{`. Claude "thinks" it already started the answer and continues from there instead of starting fresh.
+
+Think of it like finishing someone else's sentence. If a person starts a sentence and pauses, the natural move is to complete it, not to start a new one. Prefilling works the same way: it nudges Claude into completing a JSON object instead of writing a sentence around it.
+
+---
+
+### Code walkthrough
+
+> 📄 **File:** `app_v6.py`
+
+#### Step 1 — Computing the danger score
+
+```python
+# 🤖── Claude calls - actions ────────────────────────────────────────────────────
+def compute_danger_score(chunks: list[str]) -> dict:
+    sample = "\n\n---\n\n".join(chunks[:20])
+    prompt = f"""Analyse these contract excerpts and return a JSON object with:
+    - score: integer 1-10 (1=very safe, 10=extremely risky). Use the full range fairly:
+    most standard commercial contracts should score between 3-5.
+    Only score 7+ if there are clauses that are genuinely predatory or highly unusual.
+    - summary: one sentence explaining the score
+    - red_flags: list of up to 5 objects, each with exactly two keys:
+    "clause" (short title) and "issue" (explanation).    
+    Only include clauses that are genuinely concerning, not standard legal boilerplate.
+
+    <excerpts>
+    {sample}
+    </excerpts>
+    
+    Return ONLY valid JSON, no markdown, no backticks, no explanation.
+    """
+    raw = ask_claude(SYSTEM_CONTRACT, prompt, True)
+    import json
+    try:
+        # Strip markdown fences if present
+        cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+        return json.loads(cleaned)
+    except Exception:
+        # Try extracting JSON object with regex as fallback
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except Exception:
+                pass
+        return {"score": 0, "summary": "Could not parse score.", "red_flags": []}
+```
+
+`sample = chunks[:20]` caps the input to the first 20 chunks. The prompt asks for a score from 1 to 10, a one-sentence summary, and up to 5 red flags, each with a short title and an explanation. The instruction telling Claude to output raw JSON only sits at the very end of the prompt, right before the call.
+
+Even with that instruction, the parsing step has two fallbacks: strip markdown fences if Claude adds them anyway, then fall back to a regex extraction of the JSON object if the first parse fails. If both fail, the function returns a safe default instead of crashing.
+
+---
+
+#### Step 2 — Prefilling the assistant message
+
+```python
+def ask_claude(system: str, user: str, prefill= False) -> str:
+
+    msgs = [{"role": "user", "content": user}]
+
+    # put words in claude's mouth
+    # to force claude to return json since it "thinks" it already started writing json
+    if prefill:
+        msgs.append({"role": "assistant", "content": "{"})
+
+    response = anthropic_client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=1024,
+        system=system,
+        messages=msgs
+    )
+
+    # at this point it just answer what was in fault
+    # example: "score": 7, "summary": "...", "red_flags": [...]}
+    # it will not include the openning of json! We must add it
+    # "{" + '"score": 7, "summary": "...", "red_flags": [...]}'
+    return  ("{" if prefill else "") + response.content[0].text
+```
+
+This is where the "words in Claude's mouth" trick happens. When `prefill=True`, an assistant message containing just `{` is appended to the conversation before the call. Claude treats this as its own partial response and continues writing from there, which means the reply will be the rest of the JSON object, never the opening brace again.
+
+Since Claude never repeats text it believes it already wrote, the code manually re-adds the `{` when building the final string. Skip that step and every parse will fail on a missing opening brace.
+
+> ⚠️⚠️⚠️ **Important.** Prefilling does not work with extended thinking enabled. If you turn thinking on for this kind of call, this whole technique breaks.
 
 [⬆️ **`Part 6`**](#part-6)
+
+---
+
+#### Step 3 — Testing the danger score
+
+```python
+# ─────────────────────────────────────────────
+# 🚀 ENTRY POINT - TESTING 
+# ─────────────────────────────────────────────
+def _test_compute_danger_score(pdf_text_chunks: list[str]):
+    danger_score = compute_danger_score(pdf_text_chunks)
+    
+    print()
+    print("✂️  " * 50)
+    print(f"Score: {danger_score.get('score', 0)}")
+    print(f"Summary: {danger_score.get('summary', 'None')} \n")    
+    for rf in danger_score.get('red_flags', []):
+        clause = rf.get('clause', 'None')
+        issue = rf.get('issue', 'None')
+        print(f"➡️  clause: {clause} \n➡️  issue: {issue} \n\n")
+
+if __name__ == "__main__":
+
+    from pathlib import Path
+    PDFS_DIR = Path(__file__).parent / "tos_docs"
+
+    file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+    file_path = PDFS_DIR / "Microsoft Services Agreement.pdf"
+    file_path = PDFS_DIR / "google_terms_of_service_en_eu.pdf"
+
+
+    pdf_text = extract_text_from_pdf(file_path)
+    pdf_text_chunks = chunk_text(pdf_text)
+
+
+
+    # 1)
+    _test_compute_danger_score(pdf_text_chunks)
+```
+
+`_test_compute_danger_score` keeps the entry point clean. It calls `compute_danger_score`, then prints the result in a readable format: the score, the one-sentence summary, and each red flag with its clause title and issue.
+
+The `__main__` block reuses the same pattern from earlier parts: pick a PDF, extract its text, chunk it, then run the test function on the chunks. Notice the three `file_path` assignments. Only the last one takes effect, the previous two are just left there as quick swaps for testing different documents.
+
+---
+
+### Run it
+
+```bash
+py app_v6.py
+```
+
+> 💡 On macOS or Linux, use `python app_v6.py` instead.
+
+Output for `google_terms_of_service_en_eu.pdf`:
+
+```bash
+Loading weights: 100%|███████████████████████████████████████████████████████████████████████████| 103/103 [00:00<00:00, 5641.11it/s]
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+
+✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️    
+Score: 4
+Summary: Standard large-tech-company terms with broad service modification rights and content licensing, but with clear notice provisions and user protections that are industry-typical. 
+
+➡️  clause: Unilateral Service Modifications 
+➡️  issue: Google reserves broad rights to modify, add, remove, or discontinue services and features with only 'reasonable advance notice' in most cases, except for security/abuse issues which require no notice. While notice is promised, the definition of 'reasonable' is subjective. 
+
+
+➡️  clause: Content License Scope 
+➡️  issue: The license grants Google worldwide, non-exclusive rights to reproduce, distribute, publicly display, modify, and sublicense user content. While standard for platforms, the ability to modify content (including translations/reformatting) and sublicense to contractors is broader than some competitors' terms. 
+
+
+➡️  clause: Automated Content Analysis 
+➡️  issue: Google reserves the right to use automated systems to analyze content for spam, malware, patterns, and personalization purposes. While disclosed, users have limited granularity over what analysis occurs, though some settings (like Ads Settings) can be adjusted. 
+```
+
+> 💡 **About those warnings.**
+> - `Loading weights` is just SentenceTransformer loading the embedding model. It only shows up once.
+> - `Could not get FontBBox` comes from pdfplumber dealing with malformed fonts inside the PDF. Neither one has any real impact on this project and both could have been suppressed. They are left here for transparency.
+
+---
+
+### Conclusions
+
+This part has no new retrieval logic. The lesson here is about influencing LLM output shape without tool calling:
+
+- A clear instruction at the end of the prompt carries more weight than the same instruction buried earlier.
+- Prefilling the assistant turn is a cheap, reliable way to force a specific output format. Claude continues from where the prefilled text left off instead of restarting.
+- Prefilling and extended thinking don't mix. Pick one for this kind of structured-output call.
+- Even with both techniques in place, a parsing fallback is still worth keeping. LLM outputs are non-deterministic, so a small share of malformed responses should always be expected.
+
+--- 
+
+> 💡 **RAG curiosity.** The danger score here is computed from the first 20 chunks, not from chunks retrieved by a query. This is a deliberate shortcut: there is no "question" to embed yet, just a request to summarise risk across the whole document. It's a reminder that RAG retrieval is built for targeted questions. Tasks like "score the whole document" usually call for a different strategy, such as sampling or map-reduce style summarization. Both exist and are worth knowing about, but they are out of scope for this series.
+
+> 🤡 **Fun fact:** 
+Prefilling doesn't just save a markdown-stripping step. It changes the probability distribution for every token that follows, since the model is conditioning on text it believes it already committed to.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
