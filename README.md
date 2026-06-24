@@ -1815,18 +1815,25 @@ Could not get FontBBox from font descriptor because None cannot be parsed as 4 f
 
 ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️    
 Score: 4
-Summary: Standard large-tech-company terms with broad service modification rights and content licensing, but with clear notice provisions and user protections that are industry-typical. 
+Summary: Standard large-tech-company terms with broad service modification rights and content licensing, 
+but with clear notice provisions and user protections that are industry-typical. 
 
 ➡️  clause: Unilateral Service Modifications 
-➡️  issue: Google reserves broad rights to modify, add, remove, or discontinue services and features with only 'reasonable advance notice' in most cases, except for security/abuse issues which require no notice. While notice is promised, the definition of 'reasonable' is subjective. 
+➡️  issue: Google reserves broad rights to modify, add, remove, or discontinue services and features 
+with only 'reasonable advance notice' in most cases, except for security/abuse issues which require 
+no notice. While notice is promised, the definition of 'reasonable' is subjective. 
 
 
 ➡️  clause: Content License Scope 
-➡️  issue: The license grants Google worldwide, non-exclusive rights to reproduce, distribute, publicly display, modify, and sublicense user content. While standard for platforms, the ability to modify content (including translations/reformatting) and sublicense to contractors is broader than some competitors' terms. 
+➡️  issue: The license grants Google worldwide, non-exclusive rights to reproduce, distribute, 
+publicly display, modify, and sublicense user content. While standard for platforms, the ability 
+to modify content (including translations/reformatting) and sublicense to contractors is broader 
+than some competitors' terms. 
 
 
 ➡️  clause: Automated Content Analysis 
-➡️  issue: Google reserves the right to use automated systems to analyze content for spam, malware, patterns, and personalization purposes. While disclosed, users have limited granularity over what analysis occurs, though some settings (like Ads Settings) can be adjusted. 
+➡️  issue: Google reserves the right to use automated systems to analyze content for spam, malware, patterns, and personalization purposes. While disclosed, users have limited granularity over what 
+analysis occurs, though some settings (like Ads Settings) can be adjusted. 
 ```
 
 > 💡 **About those warnings.**
