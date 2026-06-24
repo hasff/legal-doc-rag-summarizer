@@ -1832,8 +1832,9 @@ than some competitors' terms.
 
 
 ➡️  clause: Automated Content Analysis 
-➡️  issue: Google reserves the right to use automated systems to analyze content for spam, malware, patterns, and personalization purposes. While disclosed, users have limited granularity over what 
-analysis occurs, though some settings (like Ads Settings) can be adjusted. 
+➡️  issue: Google reserves the right to use automated systems to analyze content for spam, 
+malware, patterns, and personalization purposes. While disclosed, users have limited granularity 
+over what analysis occurs, though some settings (like Ads Settings) can be adjusted. 
 ```
 
 > 💡 **About those warnings.**
