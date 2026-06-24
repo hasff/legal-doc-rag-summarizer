@@ -1974,9 +1974,9 @@ if __name__ == "__main__":
     pdf_text = extract_text_from_pdf(file_path)
     pdf_text_chunks = chunk_text(pdf_text)
 
-    chunks_embeddings = embed_texts(pdf_text_chunks)
-    tokenized = [c.lower().split() for c in pdf_text_chunks]
-    bm25 = BM25Okapi(tokenized)
+    chunks_embeddings = embed_texts(pdf_text_chunks)  
+    chunks_tokens = tokenize_texts(pdf_text_chunks)
+    bm25 = BM25Okapi(chunks_tokens) # indexing   
 
     # 1)
     question = "What the document is about?"
