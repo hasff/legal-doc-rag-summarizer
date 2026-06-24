@@ -1651,14 +1651,15 @@ Why 60 specifically for `k_rrf`? It's empirical, not theoretical. The original R
 > 📒 **What you'll learn:** How to make Claude return structured JSON using assistant prefill, and how to build a risk scoring feature on top of it.
 
 ---
-
 ### Theory
 
 This part intentionally skips both vector search and BM25 search. The danger score works directly on the document's chunks, with no user question to embed and no index to query. Retrieval comes back in Part 07, answering specific questions and simplifying clauses using the hybrid search built in Part 05. Here, we start building the feature that actually matters for the final app: turning a contract into a risk score.
 
-`compute_danger_score` does not run over the full corpus. It only looks at the first 20 chunks.
+This is the job of `compute_danger_score`. It takes the chunks already produced in earlier parts and sends a sample of them to Claude for analysis, asking for a numeric score along with a summary and a list of red flags.
 
-> ⚠️ **Note on scope.** With small documents like the ones used in this tutorial, this has no real effect. With longer contracts, this means the score is based on the beginning of the document only. Worth knowing before you trust this on a 100-page lease.
+The sample is not the full corpus. It only looks at the first 20 chunks.
+
+> ⚠️ **Note on scope.** Capping the sample at 20 chunks has no real effect on small documents like the ones used in this tutorial. With longer contracts, this means the score is based on the beginning of the document only. Worth knowing before you trust this on a 100-page lease.
 
 The other key piece of this part is a prompting technique to force valid JSON output:
 
