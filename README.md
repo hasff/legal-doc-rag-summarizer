@@ -1836,9 +1836,11 @@ malware, patterns, and personalization purposes. While disclosed, users have lim
 over what analysis occurs, though some settings (like Ads Settings) can be adjusted. 
 ```
 
-> 💡 **About those warnings.**
+> 💡 **About output warnings.**
 > - `Loading weights` is just SentenceTransformer loading the embedding model. It only shows up once.
-> - `Could not get FontBBox` comes from pdfplumber dealing with malformed fonts inside the PDF. Neither one has any real impact on this project and both could have been suppressed. They are left here for transparency.
+> - `Could not get FontBBox` comes from pdfplumber dealing with malformed fonts inside the PDF. 
+>
+> Neither one has any real impact on this project and both could have been suppressed. They are left here for transparency.
 
 ---
 
