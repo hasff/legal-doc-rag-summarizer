@@ -1664,9 +1664,7 @@ The sample is not the full corpus. It only looks at the first 20 chunks.
 The other key piece of this part is a prompting technique to force valid JSON output:
 
 1. The prompt ends with an explicit instruction: *"Return ONLY valid JSON, no markdown, no backticks, no explanation."* The end of a prompt carries more weight than the middle, so this placement is intentional.
-2. The conversation is prefilled with an assistant message that already contains `{`. Claude "thinks" it already started the answer and continues from there instead of starting fresh.
-
-Think of it like finishing someone else's sentence. If a person starts a sentence and pauses, the natural move is to complete it, not to start a new one. Prefilling works the same way: it nudges Claude into completing a JSON object instead of writing a sentence around it.
+2. The conversation is prefilled with an assistant message that already contains `{`. Claude "thinks" it already started the answer and continues from there instead of starting fresh. Think of it like finishing someone else's sentence. If a person starts a sentence and pauses, the natural move is to complete it, not to start a new one. Prefilling works the same way: it nudges Claude into completing a JSON object instead of writing a sentence around it.
 
 ---
 
