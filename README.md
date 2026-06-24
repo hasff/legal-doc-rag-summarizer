@@ -1870,11 +1870,221 @@ Prefilling doesn't just save a markdown-stripping step. It changes the probabili
 
 #### ⚡ Quick Navigation: [⬅️ Part 06](#part-6) | [Part 08 ➡️](#part-8)
 
-> 📒 **What you'll learn:** How to wire hybrid retrieval into two practical features: a Q&A chat and a legalese simplifier.
+> 📒 **What you'll learn:** How to put the full RAG pipeline to work with two concrete use cases: answering a direct question about a document, and simplifying a legal clause with retrieved context as support.
 
-_TODO_
+---
 
-[⬆️ **`Part 7`**](#part-7)
+### Theory
+
+This part doesn't introduce new theory. It's where everything built so far comes together.
+
+We finally implement `answer_question` and `simplify_clause`. They're almost identical in structure, and both rely on `hybrid_retrieve` to pull relevant chunks before calling Claude.
+
+What changes between them is the prompt. `answer_question` responds directly to a question about the document. `simplify_clause` also answers a question, but its goal is to rewrite a clause in plain language, using RAG to ground that rewrite in facts from the document.
+
+---
+
+### Code walkthrough
+
+📄 **File:** `app_v7.py`
+
+#### 1) `answer_question` and `simplify_clause`
+
+Both functions share the same shape. What differs is the external prompt template, a good moment to highlight the technique of placing important information inside XML tags.
+
+Note that this is not an f-string. `rag_query` later does the substitution itself with `template_prompt.format(context=context, question=question)`.
+
+```python
+def answer_question(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi) -> str:
+    template_prompt = """Answer the user's question based exclusively on the contract excerpts below.
+    If the answer is not in the excerpts, say so clearly.
+
+    <contract_excerpts>
+    {context}
+    </contract_excerpts>
+
+    <question>
+    {question}
+    </question>"""
+    return rag_query(question, chunks, embeddings, bm25, template_prompt, top_k=3)
+
+def simplify_clause(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi) -> str:
+    template_prompt = """Rewrite the following legal clause in plain, simple English.
+    Use the related contract excerpts below for additional context if helpful.
+
+    <related_context>
+    {context}
+    </related_context>
+
+    <clause>
+    {question}
+    </clause>"""
+    return rag_query(question, chunks, embeddings, bm25, template_prompt, top_k=5)
+```
+
+#### 2) `rag_query`
+
+Since both functions are so similar, `rag_query` exists to avoid repeating the same logic twice. Don't repeat yourself.
+
+```python
+def rag_query(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi, template_prompt: str, top_k=5):
+    context_chunks = hybrid_retrieve(question, chunks, embeddings, bm25, top_k)
+    context = "\n\n---\n\n".join(context_chunks)
+    prompt = template_prompt.format(context=context, question=question)
+
+    return ask_claude(SYSTEM_CONTRACT, prompt)
+```
+
+#### 3) Test helpers and `__main__`
+
+`_test_answer_question` and `_test_simplify_clause` isolate each test so the main block stays clean.
+
+The main block reuses everything done in previous parts: extract the text, chunk it, generate embeddings, tokenize, and build the BM25 index. Then it calls both functions with data appropriate to each.
+
+```python
+def _test_answer_question(question: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+    result = answer_question(question, pdf_text_chunks, chunks_embeddings, bm25)
+
+    print()
+    print("✂️  " * 50)
+    print(" ===> answer_question")
+    print(f"question: {question} \n")
+    print(f"answer: {result} \n\n")
+
+
+def _test_simplify_clause(clause: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+    result = simplify_clause(clause, pdf_text_chunks, chunks_embeddings, bm25)
+
+    print()
+    print("✂️  " * 50)
+    print(" ===> simplify_clause")
+    print(f"clause: {clause} \n")
+    print(f"answer: {result} \n\n")
+
+if __name__ == "__main__":
+
+    from pathlib import Path
+    PDFS_DIR = Path(__file__).parent / "tos_docs"
+
+    file_path = PDFS_DIR / "Microsoft Services Agreement.pdf"
+    file_path = PDFS_DIR / "google_terms_of_service_en_eu.pdf"
+    file_path = PDFS_DIR / "danger_zone_rag_test.pdf"
+
+
+    pdf_text = extract_text_from_pdf(file_path)
+    pdf_text_chunks = chunk_text(pdf_text)
+
+    chunks_embeddings = embed_texts(pdf_text_chunks)
+    tokenized = [c.lower().split() for c in pdf_text_chunks]
+    bm25 = BM25Okapi(tokenized)
+
+    # 1)
+    question = "What the document is about?"
+    _test_answer_question(question, pdf_text_chunks, chunks_embeddings, bm25)
+
+    # 2)
+    clause = """3.3 Real Estate Agent Obligations
+Licensed real estate agents must act in the best interest of their client throughout the property
+transaction lifecycle. Agents are prohibited from representing conflicting interests in the same
+transaction without written disclosure and informed consent from both parties. Commission
+structures must be disclosed prior to engagement (Disclosure Form: REA-DISC-2024). Agents must"""
+    _test_simplify_clause(clause, pdf_text_chunks, chunks_embeddings, bm25)
+```
+
+[⬆️ **`Part 07`**](#part-07)
+
+---
+
+### Run it
+
+> 💡 On macOS or Linux, use `python` instead of `py`.
+
+```bash
+py app_v7.py
+```
+
+Output for `danger_zone_rag_test.pdf`:
+
+```bash
+Loading weights: 100%|███████████████████████████████████████████████████████████████████████████| 103/103 [00:00<00:00, 3990.15it/s]
+
+✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  
+ ===> answer_question
+question: What the document is about? 
+
+answer: # Document Summary
+
+Based on the excerpts provided, this is **not a real legal document**. It is explicitly labeled as a **"SYNTHETIC LEGAL DOCUMENT" created for testing purposes only**.
+
+The document appears to be designed to stress-test a legal document retrieval and analysis system (RAG pipeline) by containing intentionally ambiguous language across multiple legal domains.
+
+## Topics Covered (in the excerpts):
+
+The document touches on several legal areas:
+
+1. **Data Protection** – Personal data processing, controller/processor responsibilities, data integrity, and third-country transfers
+
+2. **Employment Law** – Transfer of Undertakings Protection of Employment (TUPE) regulations, employee notification requirements (28 days notice), and preservation of employment terms
+
+3. **Agency Law** – Power of Attorney, fiduciary duties, agent authority scope, conflict of interest disclosure, and transaction record-keeping
+
+## Important Note:
+
+This is a **test document with deliberately ambiguous sections** designed to challenge retrieval systems. It is not intended to represent any actual legal agreement and should not be relied upon for real-world legal guidance. 
+
+
+
+✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️   
+ ===> simplify_clause
+clause: 3.3 Real Estate Agent Obligations
+Licensed real estate agents must act in the best interest of their client throughout the property
+transaction lifecycle. Agents are prohibited from representing conflicting interests in the same
+transaction without written disclosure and informed consent from both parties. Commission
+structures must be disclosed prior to engagement (Disclosure Form: REA-DISC-2024). Agents must 
+
+answer: # Plain English Version of Section 3.3
+
+## What Real Estate Agents Must Do
+
+**Act in your best interest**
+Real estate agents must always put your interests first throughout the entire property buying or selling process.
+
+**No conflicts of interest (or tell you if there are)**
+An agent cannot represent both you and another party in the same deal unless:
+- They tell both of you in writing that they have competing interests, AND
+- Both of you agree to this arrangement in writing
+
+**Tell you how much they're charging**
+Before you hire an agent, they must clearly explain their commission (how much you'll pay them and how it works). You'll receive a formal Disclosure Form (REA-DISC-2024) for this.
+
+**Follow money-laundering laws**
+Agents must check who they're dealing with and follow anti-money-laundering regulations to prevent illegal activity.
+
+**Report to you regularly**
+Agents must keep accurate records of all transactions and give you quarterly (every 3 months) written reports of their work on your behalf.
+
+---
+
+## Key Takeaway
+This clause protects you by requiring agents to be transparent about fees, avoid conflicts of interest, and keep you informed—standard protections in most real estate regulations. 
+```
+
+> 💡 **About output warnings.**
+> - `Loading weights` is just SentenceTransformer loading the embedding model. It only shows up once.
+>
+> It has no real impact on this project and is left here for transparency.
+
+---
+
+### Conclusions
+
+The main takeaway here is the value of XML tags in prompt construction. Wrapping context and question in `<contract_excerpts>` / `<question>` (or `<related_context>` / `<clause>`) gives Claude a clear, unambiguous structure to parse, separating retrieved evidence from the actual ask.
+
+It's also worth noting how little code was needed to go from raw chunks to a working Q&A and clause-simplification tool. The retrieval and prompting logic built in previous parts pays off here: `rag_query` is barely ten lines, and both use cases reuse it without duplication.
+
+---
+
+> 💡 **RAG curiosity.** RAG isn't a single technique, it's retrieval plus prompting working together. The "intelligence" people credit to the LLM in these answers is just as much a credit to the chunk that got retrieved in the first place.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
