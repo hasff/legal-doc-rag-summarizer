@@ -2035,33 +2035,41 @@ Output for `danger_zone_rag_test.pdf`:
 ```bash
 Loading weights: 100%|███████████████████████████████████████████████████████████████████████████| 103/103 [00:00<00:00, 3990.15it/s]
 
-✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  
+✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️ 
  ===> answer_question
 question: What the document is about? 
 
 answer: # Document Summary
 
-Based on the excerpts provided, this is **not a real legal document**. It is explicitly labeled as a **"SYNTHETIC LEGAL DOCUMENT" created for testing purposes only**.
+Based on the excerpts provided, this is **not a real legal document**. It is explicitly labeled 
+as a **"SYNTHETIC LEGAL DOCUMENT" created for testing purposes only**.
 
-The document appears to be designed to stress-test a legal document retrieval and analysis system (RAG pipeline) by containing intentionally ambiguous language across multiple legal domains.
+The document appears to be designed to stress-test a legal document retrieval and analysis 
+system (RAG pipeline) by containing intentionally ambiguous language across multiple legal 
+domains.
 
 ## Topics Covered (in the excerpts):
 
 The document touches on several legal areas:
 
-1. **Data Protection** – Personal data processing, controller/processor responsibilities, data integrity, and third-country transfers
+1. **Data Protection** – Personal data processing, controller/processor responsibilities, data 
+integrity, and third-country transfers
 
-2. **Employment Law** – Transfer of Undertakings Protection of Employment (TUPE) regulations, employee notification requirements (28 days notice), and preservation of employment terms
+2. **Employment Law** – Transfer of Undertakings Protection of Employment (TUPE) regulations, 
+employee notification requirements (28 days notice), and preservation of employment terms
 
-3. **Agency Law** – Power of Attorney, fiduciary duties, agent authority scope, conflict of interest disclosure, and transaction record-keeping
+3. **Agency Law** – Power of Attorney, fiduciary duties, agent authority scope, conflict of 
+interest disclosure, and transaction record-keeping
 
 ## Important Note:
 
-This is a **test document with deliberately ambiguous sections** designed to challenge retrieval systems. It is not intended to represent any actual legal agreement and should not be relied upon for real-world legal guidance. 
+This is a **test document with deliberately ambiguous sections** designed to challenge retrieval 
+systems. It is not intended to represent any actual legal agreement and should not be relied 
+upon for real-world legal guidance. 
 
 
 
-✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️   
+✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️  ✂️   
  ===> simplify_clause
 clause: 3.3 Real Estate Agent Obligations
 Licensed real estate agents must act in the best interest of their client throughout the property
@@ -2074,7 +2082,8 @@ answer: # Plain English Version of Section 3.3
 ## What Real Estate Agents Must Do
 
 **Act in your best interest**
-Real estate agents must always put your interests first throughout the entire property buying or selling process.
+Real estate agents must always put your interests first throughout the entire property buying 
+or selling process.
 
 **No conflicts of interest (or tell you if there are)**
 An agent cannot represent both you and another party in the same deal unless:
@@ -2082,18 +2091,22 @@ An agent cannot represent both you and another party in the same deal unless:
 - Both of you agree to this arrangement in writing
 
 **Tell you how much they're charging**
-Before you hire an agent, they must clearly explain their commission (how much you'll pay them and how it works). You'll receive a formal Disclosure Form (REA-DISC-2024) for this.
+Before you hire an agent, they must clearly explain their commission (how much you'll pay them 
+and how it works). You'll receive a formal Disclosure Form (REA-DISC-2024) for this.
 
 **Follow money-laundering laws**
-Agents must check who they're dealing with and follow anti-money-laundering regulations to prevent illegal activity.
+Agents must check who they're dealing with and follow anti-money-laundering regulations to 
+prevent illegal activity.
 
 **Report to you regularly**
-Agents must keep accurate records of all transactions and give you quarterly (every 3 months) written reports of their work on your behalf.
+Agents must keep accurate records of all transactions and give you quarterly (every 3 months)
+ written reports of their work on your behalf.
 
 ---
 
 ## Key Takeaway
-This clause protects you by requiring agents to be transparent about fees, avoid conflicts of interest, and keep you informed—standard protections in most real estate regulations. 
+This clause protects you by requiring agents to be transparent about fees, avoid conflicts of 
+interest, and keep you informed—standard protections in most real estate regulations. 
 ```
 
 > 💡 **About output warnings.**
