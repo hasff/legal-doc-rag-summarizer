@@ -1895,7 +1895,12 @@ Both functions share the same shape. What differs is the external prompt templat
 Note that this is not an f-string. `rag_query` later does the substitution itself with `template_prompt.format(context=context, question=question)`.
 
 ```python
-def answer_question(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi) -> str:
+def answer_question(
+    question: str, 
+    chunks: list[str], 
+    embeddings: list[list[float]], 
+    bm25: BM25Okapi
+) -> str:
     template_prompt = """Answer the user's question based exclusively on the contract excerpts below.
     If the answer is not in the excerpts, say so clearly.
 
@@ -1908,7 +1913,12 @@ def answer_question(question: str, chunks: list[str], embeddings: list[list[floa
     </question>"""
     return rag_query(question, chunks, embeddings, bm25, template_prompt, top_k=3)
 
-def simplify_clause(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi) -> str:
+def simplify_clause(
+    question: str, 
+    chunks: list[str], 
+    embeddings: list[list[float]], 
+    bm25: BM25Okapi
+) -> str:
     template_prompt = """Rewrite the following legal clause in plain, simple English.
     Use the related contract excerpts below for additional context if helpful.
 
@@ -1927,7 +1937,14 @@ def simplify_clause(question: str, chunks: list[str], embeddings: list[list[floa
 Since both functions are so similar, `rag_query` exists to avoid repeating the same logic twice. Don't repeat yourself.
 
 ```python
-def rag_query(question: str, chunks: list[str], embeddings: list[list[float]], bm25: BM25Okapi, template_prompt: str, top_k=5):
+def rag_query(
+    question: str, 
+    chunks: list[str], 
+    embeddings: list[list[float]], 
+    bm25: BM25Okapi, 
+    template_prompt: str, 
+    top_k=5
+):
     context_chunks = hybrid_retrieve(question, chunks, embeddings, bm25, top_k)
     context = "\n\n---\n\n".join(context_chunks)
     prompt = template_prompt.format(context=context, question=question)
@@ -1942,7 +1959,12 @@ def rag_query(question: str, chunks: list[str], embeddings: list[list[float]], b
 The main block reuses everything done in previous parts: extract the text, chunk it, generate embeddings, tokenize, and build the BM25 index. Then it calls both functions with data appropriate to each.
 
 ```python
-def _test_answer_question(question: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+def _test_answer_question(
+    question: str, 
+    chunks: list[str], 
+    chunks_embeddings: list[list[float]], 
+    bm25: BM25Okapi
+):
     result = answer_question(question, pdf_text_chunks, chunks_embeddings, bm25)
 
     print()
@@ -1952,7 +1974,12 @@ def _test_answer_question(question: str, chunks: list[str], chunks_embeddings: l
     print(f"answer: {result} \n\n")
 
 
-def _test_simplify_clause(clause: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+def _test_simplify_clause(
+    clause: str, 
+    chunks: list[str], 
+    chunks_embeddings: list[list[float]], 
+    bm25: BM25Okapi
+):
     result = simplify_clause(clause, pdf_text_chunks, chunks_embeddings, bm25)
 
     print()
