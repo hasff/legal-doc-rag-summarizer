@@ -2136,11 +2136,180 @@ It's also worth noting how little code was needed to go from raw chunks to a wor
 
 #### ⚡ Quick Navigation: [⬅️ Part 07](#part-7) | [Next Steps ➡️](#next-steps--resources_)
 
-> 📒 **What you'll learn:** How to take a well-structured Python backend and drop a Streamlit UI on top of it with minimal friction.
+> 📒 **What you'll learn:** How to wrap the RAG pipeline built in the previous parts into an interactive Streamlit app, and why preprocessing your documents once is worth the extra step.
 
-_TODO_
+---
+
+### Theory
+
+This part gives a face to everything we built so far. Most of the code here is Streamlit, not RAG, so we won't dwell on UI mechanics for their own sake.
+
+The one function that still belongs to the RAG side of things is `preprocess_pdfs`. It runs once, when the user clicks "Process Documents", and does all the chunking, embedding generation, and BM25 indexing in that single pass. The result is cached in `st.session_state`, so the chat tab and the danger score button can reuse it without ever calling `chunk_text`, `embed_texts`, or `BM25Okapi` again.
+
+If you look back at the previous parts, you'll notice we always separated "preparing the document" from "answering a question about it". `preprocess_pdfs` is that separation made explicit: prepare once, ask many times. It's a small detail, but it's the difference between an app that feels instant after the first upload and one that recomputes everything on every click.
+
+---
+
+### Install dependencies
+
+> 💡 This part introduces `streamlit`. If you followed the setup step and ran `pip install -r requirements.txt`, you already have it. If not, install now:
+
+```bash
+pip install streamlit
+```
+
+---
+
+### Code walkthrough
+
+> 📄 **File:** `app_v8.py`
+
+#### 1. Preprocessing the PDFs
+
+```python
+# ── Preprocessing ─────────────────────────────────────────────────────────────
+def preprocess_pdfs(uploaded_files):
+    all_chunks = []
+    with st.status("Processing PDFs...", expanded=True) as status:
+        for f in uploaded_files:
+            st.write(f"📄 Extracting text from **{f.name}**...")
+            text = extract_text_from_pdf(f)
+            chunks = chunk_text(text)
+            all_chunks.extend(chunks)
+            st.write(f"   → {len(chunks)} chunks created")
+
+        st.write(f"🔢 Generating embeddings for {len(all_chunks)} chunks...")
+        embeddings = embed_texts(all_chunks)
+
+        st.write("📚 Building BM25 index...")
+        chunks_tokens = tokenize_texts(all_chunks)
+        bm25 = BM25Okapi(chunks_tokens)
+
+        status.update(label="✅ Ready!", state="complete")
+
+    st.session_state.chunks     = all_chunks
+    st.session_state.embeddings = embeddings
+    st.session_state.bm25_index = bm25
+    st.session_state.ready      = True
+    st.session_state.messages   = []
+```
+
+```python
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    # (rest of sidebar omitted)
+    if uploaded_files:
+        if st.button("🚀 Process Documents", use_container_width=True, type="primary"):
+            preprocess_pdfs(uploaded_files)
+            st.rerun()
+    # (rest of sidebar omitted)
+```
+
+`preprocess_pdfs` runs every time the user clicks "🚀 Process Documents". It extracts text, chunks it, generates embeddings, and builds the BM25 index for every uploaded file, then stores all of that in `st.session_state`. <br>
+The `st.rerun()`, that follows `preprocess_pdfs(uploaded_files)` call, forces Streamlit to immediately re-execute the script once preprocessing finishes, which is what makes the rest of the UI (chat tab, danger score, simplify tab) appear right away instead of waiting for the next unrelated interaction.
+
+`st.session_state` is Streamlit's way of keeping data alive between reruns. Streamlit reruns the entire script top to bottom on every interaction (a button click, a chat message), so without session state, `all_chunks`, `embeddings`, and `bm25` would be recreated, and recomputed, on every single interaction. Storing them once means the chat tab and the danger score button can reuse the same chunks, embeddings, and BM25 index without ever calling `chunk_text`, `embed_texts`, or `BM25Okapi` again.
+
+The `st.status(...)` block isn't doing any RAG work, it just gives the user a live progress log while preprocessing runs, which matters here because embedding generation on a full document can take a few seconds.
+
+#### 2. The interface
+
+The rest of the file is standard Streamlit: page config, a sidebar for upload and danger scoring, and a main area with two tabs. A few parts are worth calling out, since they're where the RAG functions from earlier parts get wired in.
+
+**Session state initialisation:**
+
+```python
+for key, default in [
+    ("ready", False),
+    ("chunks", []),
+    ("embeddings", []),
+    ("bm25_index", None),
+    ("messages", []),
+    ("danger", None),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
+```
+
+This loop just makes sure every key exists before the rest of the script tries to read from it, so the app doesn't crash on first load.
+
+**Danger Score:**
+
+```python
+if st.button("Analyse Risk", use_container_width=True):
+    with st.spinner("Analysing..."):
+        st.session_state.danger = compute_danger_score(st.session_state.chunks)
+```
+
+This calls `compute_danger_score` from Part 06 directly on `st.session_state.chunks`. No retrieval involved here, the function deliberately works on the first chunks of the document, a choice already explained back in Part 06.
+
+**Chat tab:**
+
+```python
+chunks      = st.session_state.chunks
+embeddings  = st.session_state.embeddings
+bm25        = st.session_state.bm25_index
+
+answer = answer_question(prompt, chunks, embeddings, bm25)
+```
+
+**Simplify tab:**
+
+```python
+chunks      = st.session_state.chunks
+embeddings  = st.session_state.embeddings
+bm25        = st.session_state.bm25_index
+
+simplified = simplify_clause(clause_input, chunks, embeddings, bm25)
+```
+
+Both tabs pull the same three pieces of state, chunks, embeddings, and the BM25 index, and pass them into `answer_question` and `simplify_clause` from Part 07. Neither function needs to know it's running inside Streamlit. They take plain Python arguments and return a string, which is exactly why the integration here is this short.
+
+---
+
+### Run it
+
+```bash
+streamlit run app_v8.py
+```
+
+This command behaves the same on Windows, macOS, and Linux. Streamlit will open the app in your browser automatically, or print a local URL you can open manually.
 
 [⬆️ **`Part 8`**](#part-8)
+
+---
+
+### Output
+
+Since this is a graphical interface running in the browser (`http://localhost:8501` by default), a screenshot tells you more than a code block here:
+
+![Streamlit app overview](assets/part_08/screenshot_1.jpg)
+*The Streamlit interface after launching.*
+
+<br>
+<br>
+
+![Streamlit app overview](assets/part_08/screenshot_5.jpg)
+*The Streamlit interface after processing: sidebar with danger score, chat tab, and simplify tab.*
+
+<br>
+
+#### Watch this Quick Demo video
+[![Legal RAG Doc Summarizer](https://img.youtube.com/vi/CMNFWU3oMrk/maxresdefault.jpg)](https://youtu.be/CMNFWU3oMrk)
+
+
+---
+
+### Conclusions
+
+The main lesson here isn't Streamlit, it's that the work invested in keeping `chunk_text`, `embed_texts`, `tokenize_texts`, and the BM25 index as plain, framework-agnostic functions paid off. `preprocess_pdfs` simply calls them once and caches the result, and every other part of the app, danger score, chat, simplify, reuses that cache instead of repeating the offline RAG steps on every interaction.
+
+That's the same "prepare once, ask many times" separation we pointed out earlier in this part, now visible at the architecture level: chunking, embedding, and indexing happen once, when the document is processed; retrieval and generation happen every time the user asks something. Get that separation right at the function level, and swapping the interface, Streamlit, a CLI, an API, becomes a small, almost mechanical step.
+
+---
+
+> 💡 **RAG curiosity.** 
+Did you know the embedding model we used (`all-MiniLM-L6-v2`) outputs vectors with only 384 dimensions? Bigger commercial embedding models often go up to 1536 or 3072 dimensions. More dimensions can capture finer-grained meaning, but they also mean more storage and slower similarity search, so smaller models like this one are a deliberate trade-off for speed, not a shortcut.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
