@@ -121,7 +121,7 @@ This trade-off, a bit of upfront engineering in exchange for speed, cost, and ac
 
 ### The pieces that make it work
 
-Across this tutorial series, we build a RAG pipeline one layer at a time:
+Across this tutorial series, we build a RAG project one layer at a time:
 
 - **Chunking** - breaking the PDF into smaller, searchable pieces
 - **Embeddings** - turning each chunk into a vector so we can search by meaning, not just keywords
