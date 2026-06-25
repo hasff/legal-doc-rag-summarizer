@@ -2379,6 +2379,12 @@ Since this is a graphical interface running in the browser (`http://localhost:85
 *The Streamlit interface after processing: sidebar with danger score, chat tab, and simplify tab.*
 
 <br>
+<br>
+
+![Streamlit app overview](assets/part_08/screenshot_google_exemple.jpg)
+*The Streamlit interface after simplifying a paragraph from the Google Terms of Service.*
+
+<br>
 
 #### Watch this Quick Demo video
 [![Legal RAG Doc Summarizer](https://img.youtube.com/vi/CMNFWU3oMrk/maxresdefault.jpg)](https://youtu.be/CMNFWU3oMrk)
