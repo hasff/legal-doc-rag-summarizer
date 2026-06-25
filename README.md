@@ -1,6 +1,6 @@
 # legal-doc-rag-summarizer
 
-> A RAG pipeline that reads legal PDFs, answers questions about them, scores their risk, and simplifies legalese into plain English — built with Python, HuggingFace embeddings, BM25, and the Claude API.
+> A RAG-powered Streamlit app that reads legal PDFs, answers questions about them, scores their risk, and simplifies legalese into plain English — built with Python, HuggingFace embeddings, BM25, and the Claude API.
 
 > 💾 If this project looks useful, starring it now means you won't lose it later.
 
