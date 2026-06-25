@@ -683,13 +683,12 @@ here are the various English terms for "processor":
 
 The subject is floating. The chunk contains the action, but not enough context to ground it.
 
-Now lets reveal the chunk just before it:
-
+Now let's reveal the chunk just before it:
 ```text
-3) ✂️ storage, and erasure of data subjects' personal information. The data processor
+3) ✂️ storage, and erasure of data subjects' personal information. The data
 ```
 
-Something clicks. "Data processor" appears here. "Data integrity" appears in the next chunk. Both refer to the same responsibility — but neither chunk alone is enough to answer the question confidently.
+Nothing clicks immediately, this chunk alone doesn't even contain the word "processor." But you know chunk 3) sits right before chunk 4) in the original document. Reading them back-to-back, "The data" + "processor must implement..." reconnects into "The data processor" by simple positional adjacency, not because any single chunk told you so. Both chunks carry half the answer, and only their sequence (not their content alone) gives you "data integrity" its missing subject.
 
 > This is the real problem with chunking: not that information disappears, but that it gets fragmented into pieces that are almost useful, and "almost" is not enough.
 
