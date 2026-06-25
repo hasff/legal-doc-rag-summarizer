@@ -2429,7 +2429,14 @@ Want to go deeper? Here are the resources that complement this project.
 
 #### ⚡ Quick Navigation: [⬅️ Next Steps & Resources](#next-steps--resources_) | [⬆️ Back to Top](#legal-doc-rag-summarizer)
 
-Found this useful? Have questions or ideas? I'd love to hear from you.
+
+This tutorial took real time, real focus, and more debugging sessions than I'd like to admit. Not because I had to build it, but because this is genuinely how I like to spend my time: learning something properly enough to explain it to someone else.
+
+I've always been told I have a knack for teaching, and I believe it. Explaining something forces me to actually understand it, no shortcuts, no hand-waving.
+
+Right now this is something I do on my own time, for free. But I'd genuinely love for this to become my actual work, building, teaching, and explaining things like RAG pipelines and agentic systems, not just a side project squeezed into evenings and weekends. If you're building something in this space and looking for someone who already does this kind of work without being asked, that's exactly the kind of opportunity I'm looking for.
+
+Found this useful? Have questions or ideas? I'd love to hear from you either way.
 
 - 🔗 **[LinkedIn](https://www.linkedin.com/in/hugo-ferro-1434b414/)**
 - 📩 **Email:** hugoferro (at) gmail.com
@@ -2443,6 +2450,7 @@ Found this useful? Have questions or ideas? I'd love to hear from you.
 #### Find out in this 10 minute video from IBM
 [![Watch from IBM - How RAG, GraphRAG, and Context Engineering Improve AI Performance](https://img.youtube.com/vi/pN-LfxNFiTc/maxresdefault.jpg)](https://youtu.be/pN-LfxNFiTc)
 
-*New tools. New servers. New agents. The horizon never stops growing. There is always another shore.* 🚀
+
+*There is always something to discover. Something to drive us. Something to make us better. New possibilities. New roles to conquer. No matter the challenge, we keep going. It's in our nature. It's in our DNA.* 🧬
 
 [↑ Back to Table of Contents](#table-of-contents_)
