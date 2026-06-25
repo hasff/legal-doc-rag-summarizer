@@ -601,7 +601,7 @@ This is the problem RAG solves. The next parts build the solution, one piece at 
 ---
 
 > 💡 **RAG Curiosity**
-> The context window limit that makes full-text stuffing impractical is measured in tokens, not characters. A token is roughly 3-4 characters on average. A 200-page legal document can easily exceed 150,000 tokens. Claude Haiku supports up to 200K tokens, but at that size you're paying for a lot of context that adds little value to your answer.
+> The context window limit that makes full-text stuffing impractical is measured in tokens, not characters. In English text, one token is often roughly equivalent to 3–4 characters. A 200-page legal document can easily exceed 150,000 tokens. Claude Haiku supports up to 200K tokens, but at that size you're paying for a lot of context that adds little value to your answer.
 
 
 [↑ Back to Table of Contents](#table-of-contents_)
@@ -1072,7 +1072,15 @@ Where `A · B` is the dot product of the two vectors, and `‖A‖`, `‖B‖` a
 
 Wait, wait, wait, wait!!! Maybe what you just read makes sense on the surface, and you're thinking "I've got this"... but deep down it's still a bit "so-so".
 
-Let's put it in plain English.
+Let's put it in plain English. 
+
+🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+**THE EXAMPLES BELOW ARE DELIBERATELY OVER-SIMPLIFIED TO HELP YOU UNDERSTAND THE CONCEPT.** <br>
+**REAL EMBEDDINGS DO NOT WORK THIS WAY.** <br>
+**DO NOT TAKE THE EXAMPLE LITERALLY.** 
+
+🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
 We talked about vectors with hundreds of dimensions (numbers). Now imagine they only have two numbers: one for the X axis and one for the Y axis. Let's imagine three words: "toy cat", "cat", and "dog".
 
