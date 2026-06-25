@@ -2081,7 +2081,7 @@ structures must be disclosed prior to engagement (Disclosure Form: REA-DISC-2024
     _test_simplify_clause(clause, pdf_text_chunks, chunks_embeddings, bm25)
 ```
 
-[⬆️ **`Part 07`**](#part-07)
+[⬆️ **`Part 7`**](#part-7)
 
 ---
 
