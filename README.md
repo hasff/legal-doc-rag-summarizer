@@ -2230,7 +2230,7 @@ It's also worth noting how little code was needed to go from raw chunks to a wor
 
 This part gives a face to everything we built so far. Most of the code here is Streamlit, not RAG, so we won't dwell on UI mechanics for their own sake.
 
-The one function that still belongs to the RAG side of things is `preprocess_pdfs`. It runs once, when the user clicks "Process Documents", and does all the chunking, embedding generation, and BM25 indexing in that single pass. The result is cached in `st.session_state`, so the chat tab and the danger score button can reuse it without ever calling `chunk_text`, `embed_texts`, or `BM25Okapi` again.
+The one function that still belongs to the RAG side of things is `preprocess_pdfs`. It runs once, when the user clicks "Process Documents", and does all the chunking, embedding generation, and BM25 indexing in that single pass. The result is cached in `st.session_state`, so the chat tab and the danger score button can reuse it without ever calling `chunk_text`, `embed_texts`, or `build_bm25_index` again.
 
 If you look back at the previous parts, you'll notice we always separated "preparing the document" from "answering a question about it". `preprocess_pdfs` is that separation made explicit: prepare once, ask many times. It's a small detail, but it's the difference between an app that feels instant after the first upload and one that recomputes everything on every click.
 
