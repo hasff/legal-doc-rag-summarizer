@@ -1812,7 +1812,7 @@ def ask_claude(system: str, user: str, prefill= False) -> str:
     # put words in claude's mouth
     # to force claude to return json since it "thinks" it already started writing json
     if prefill:
-        msgs.append({"role": "assistant", "content": "{"})
+        msgs.append({"role": "assistant", "content": "{"}) ⛺
 
     response = anthropic_client.messages.create(
         model=CLAUDE_MODEL,
@@ -1830,7 +1830,7 @@ def ask_claude(system: str, user: str, prefill= False) -> str:
 
 This is where the "words in Claude's mouth" trick happens. When `prefill=True`, an assistant message containing just `{` is appended to the conversation before the call. Claude treats this as its own partial response and continues writing from there, which means the reply will be the rest of the JSON object, never the opening brace again.
 
-Since Claude never repeats text it believes it already wrote, the code manually re-adds the `{` when building the final string. Skip that step and every parse will fail on a missing opening brace.
+Since Claude never repeats text it believes it already wrote, the code manually re-adds the `{` ⛺ when building the final string. Skip that step and every parse will fail on a missing opening brace.
 
 > ⚠️⚠️⚠️ **Important.** Prefilling does not work with extended thinking enabled. If you turn thinking on for this kind of call, this whole technique breaks.
 
