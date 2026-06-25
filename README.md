@@ -47,6 +47,9 @@ Before you dive in, keep a few things in mind:
 2. **Not production-ready:** This project was built to learn and teach. It has not been tested or hardened for production use.
 3. **Built with AI Assistance:** This README was written with AI help, mainly for English refinement. The architecture, curriculum, and all technical decisions are my own.
 
+> This project was made with what I've learned in [Building with the Claude API](https://anthropic.skilljar.com/claude-with-the-anthropic-api) course. If you enjoy this format, that course is the natural next step. 
+
+
 ---
 
 # Key Concepts Demonstrated
@@ -92,7 +95,45 @@ Before you dive in, keep a few things in mind:
 
 #### ⚡ Quick Navigation: [⬅️ Table of Contents](#table-of-contents_) | [Project Architecture ➡️](#project-architecture_)
 
-_TODO_
+Imagine asking Claude a very specific question about a 40-page contract, like *"Can the vendor terminate this agreement without notice?"*. Claude is smart, but it only knows what's inside its context window at that moment. If you don't feed it the right page, it simply can't answer correctly, no matter how capable the model is.
+
+**RAG opens that door.**
+
+**Retrieval-Augmented Generation (RAG)** is a technique for answering questions about documents that are too large to fit comfortably into a single prompt. Instead of stuffing the entire PDF into every request, RAG retrieves only the relevant pieces first, then hands those pieces to Claude alongside the question.
+
+**A practical example:**
+
+❌ **Without RAG:** You paste all 40 pages of a contract into the prompt every time you ask a question. It works, technically, but it's slow, costs more tokens, and Claude's accuracy tends to drop as the prompt grows longer.
+
+✅ **With RAG:** The document is split into chunks ahead of time. When you ask *"Can the vendor terminate without notice?"*, the system searches those chunks, finds the termination clause, and sends only that excerpt to Claude. Faster, cheaper, and more focused.
+
+| | Without RAG | With RAG |
+|---|---|---|
+| Prompt size | Entire document, every time | Only the relevant excerpts |
+| Cost per question | High | Low |
+| Scales to large/multiple docs | Poorly | Well |
+| Accuracy on long documents | Drops with size | Stays focused |
+| Setup effort | None | Requires preprocessing |
+
+This trade-off, a bit of upfront engineering in exchange for speed, cost, and accuracy, is the whole point of RAG.
+
+### The pieces that make it work
+
+Across this tutorial series, we build a RAG pipeline one layer at a time:
+
+- **Chunking** - breaking the PDF into smaller, searchable pieces
+- **Embeddings** - turning each chunk into a vector so we can search by meaning, not just keywords
+- **Vector search** - finding chunks that are semantically related to the question
+- **BM25 (lexical search)** - catching exact term matches that embeddings can miss (a clause number, a defined term, a specific party name)
+- **Hybrid retrieval (RRF)** - combining both search methods so neither one's blind spot becomes the system's blind spot
+- **Claude** - the final step, turning the retrieved excerpts into an actual answer, a danger score, or a plain-English rewrite of a clause
+
+By the end of Part 08, all of this is wrapped in a Streamlit interface, so you can upload a contract and interact with the whole pipeline without touching the terminal.
+
+> ⚠️ As mentioned earlier in this README, this is a learning project, not production-ready software. It's meant to give you a hands-on, working mental model of how RAG pipelines are actually built.
+
+### Watch this 10 minute video from IBM - What is Retrieval-Augmented Generation (RAG)?
+[![Watch from IBM - What is Retrieval-Augmented Generation (RAG)?](https://img.youtube.com/vi/T-D1OfcDW1M/maxresdefault.jpg)](https://youtu.be/T-D1OfcDW1M)
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
@@ -104,7 +145,25 @@ _TODO_
 
 #### ⚡ Quick Navigation: [⬅️ What is RAG?](#what-is-rag_) | [Requirements ➡️](#requirements_)
 
-_TODO_
+Let's be honest about what this actually is: a single Python script. No microservices, no message queues, no orchestration framework. Some people would call it a "pipeline" because the words sound nice in a README, but it's really just a sequence of functions, each one feeding the next.
+
+Here's the full flow, in order:
+
+1. **Upload** - one or more PDFs are uploaded via the Streamlit sidebar.
+2. **Extract** - `extract_text_from_pdf` pulls raw text out of each PDF using `pdfplumber`.
+3. **Chunk** - `chunk_text` splits that raw text into overlapping chunks, so context isn't lost at the edges.
+4. **Index (twice, in parallel)**
+   - `embed_texts` turns every chunk into a vector using a local `SentenceTransformer` model.
+   - `tokenize_texts` + `BM25Okapi` builds a lexical index over the same chunks.
+5. **Ask a question** - the user types a question in the chat, or pastes a clause to simplify.
+6. **Retrieve** - `hybrid_retrieve` embeds the question, runs both vector search and BM25 search, then merges the two rankings with Reciprocal Rank Fusion (`rrf_merge`).
+7. **Answer** - the retrieved chunks are dropped into a prompt template and sent to Claude (`ask_claude`), which returns one of three things depending on what was asked: a direct answer, a plain-English rewrite of a clause, or a structured danger score.
+8. **Display** - Streamlit renders the result in the chat, the "Simplify" tab, or the sidebar's risk metric.
+
+Nothing here runs in the background, nothing is queued, nothing is distributed. One script, one process, top to bottom. That simplicity is intentional: the goal of this series is to understand *how* each RAG concept works, not to build infrastructure.
+
+![RAG pipeline flow](assets/architecture/rag_process_flow.svg)
+*A visual map of how the pieces fit together.*
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
@@ -2351,7 +2410,7 @@ Want to go deeper? Here are the resources that complement this project.
 
 **RAG and the Anthropic ecosystem**
 - 🟠 [Build with Claude — Anthropic Docs](https://docs.anthropic.com/en/docs/build-with-claude/overview)
-- 🤗 [MCP Course — Hugging Face](https://huggingface.co/learn/mcp-course/unit0/introduction)
+- 🟠 [Building with the Claude API Course](https://anthropic.skilljar.com/claude-with-the-anthropic-api) 
 
 **Embeddings**
 - 🤗 [Sentence Transformers — HuggingFace](https://www.sbert.net/)
@@ -2370,5 +2429,16 @@ Found this useful? Have questions or ideas? I'd love to hear from you.
 
 - 🔗 **[LinkedIn](https://www.linkedin.com/in/hugo-ferro-1434b414/)**
 - 📩 **Email:** hugoferro (at) gmail.com
+
+[↑ Back to Table of Contents](#table-of-contents_)
+
+---
+
+
+## By the way - How RAG, GraphRAG, and Context Engineering Improve AI Performance?
+#### Find out in this 10 minute video from IBM
+[![Watch from IBM - How RAG, GraphRAG, and Context Engineering Improve AI Performance](https://img.youtube.com/vi/pN-LfxNFiTc/maxresdefault.jpg)](https://youtu.be/pN-LfxNFiTc)
+
+*New tools. New servers. New agents. The horizon never stops growing. There is always another shore.* 🚀
 
 [↑ Back to Table of Contents](#table-of-contents_)
