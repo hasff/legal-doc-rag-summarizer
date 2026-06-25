@@ -579,7 +579,7 @@ ambiguous language designed to stress-test retrieval systems."
 If you're analyzing it as a test document, Section 3.2 is the primary AI agent clause, 
 though the ambiguity is the point of the exercise.
 ```
-
+<br>
 Claude answered correctly. It found Section 3.2, summarized the AI agent conduct rules, and noted the €500 human oversight threshold. Good answer.
 
 But look at what happened to get there: the entire document — all four pages of intentionally ambiguous synthetic text — was sent as part of the question. Most of it had nothing to do with AI agents. Data processing clauses, termination rights, transfer provisions — all of it went into the prompt, consumed tokens, and added latency.
