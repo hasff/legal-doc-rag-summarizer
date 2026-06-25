@@ -127,10 +127,10 @@ Across this tutorial series, we build a RAG project one layer at a time:
 - **Embeddings** - turning each chunk into a vector so we can search by meaning, not just keywords
 - **Vector search** - finding chunks that are semantically related to the question
 - **BM25 (lexical search)** - catching exact term matches that embeddings can miss (a clause number, a defined term, a specific party name)
-- **Hybrid retrieval (RRF)** - combining both search methods so neither one's blind spot becomes the system's blind spot
+- **Hybrid retrieval (RRF)** - combining both search methods, since each one catches things the other tends to miss
 - **Claude** - the final step, turning the retrieved excerpts into an actual answer, a danger score, or a plain-English rewrite of a clause
 
-By the end of Part 08, all of this is wrapped in a Streamlit interface, so you can upload a contract and interact with the whole pipeline without touching the terminal.
+By the end of Part 08, all of this is wrapped in a Streamlit interface, so you can upload a contract and interact with the whole system without touching the terminal.
 
 > ⚠️ As mentioned earlier in this README, this is a learning project, not production-ready software. It's meant to give you a hands-on, working mental model of how RAG pipelines are actually built.
 
