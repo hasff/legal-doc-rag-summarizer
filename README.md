@@ -638,11 +638,11 @@ data integrity and prevent unauthorised access.
 **Chunked into 10-word pieces:**
 
 ```text
-✂️  The Controller shall process personal data in accordance with the
-✂️  principles of lawfulness, fairness, and transparency. Processing activities include collection,
-✂️  storage, and erasure of data subjects' personal information. The data
-✂️  processor must implement appropriate technical measures to ensure data integrity
-✂️  and prevent unauthorised access.
+1) ✂️  The Controller shall process personal data in accordance with the
+2) ✂️  principles of lawfulness, fairness, and transparency. Processing activities include collection,
+3) ✂️  storage, and erasure of data subjects' personal information. The data
+4) ✂️  processor must implement appropriate technical measures to ensure data integrity
+5) ✂️  and prevent unauthorised access.
 ```
 
 Chunk boundaries are artificial. Documents were written for humans, not for retrieval systems. Sentences and ideas span across chunks, so splitting can separate information that belongs together.
@@ -650,7 +650,7 @@ Chunk boundaries are artificial. Documents were written for humans, not for retr
 Now imagine you're only given this single chunk in isolation:
 
 ```text
-processor must implement appropriate technical measures to ensure data integrity
+4) ✂️ processor must implement appropriate technical measures to ensure data integrity
 ```
 
 And then asked a question:
@@ -661,11 +661,14 @@ Try to answer the question... Probably you'll say: **"The processor."** 😅
 
 But... processor of *what*? 
 
-```text
+You can't tell because the only piece of information you have is `4) ✂️ processor must implement appropriate technical measures to ensure data integrity`.
+
+---
+
 🧐 I did a small experiment, gave that exact same chunk to an LLM
 and asked it what the possible meanings of "Processor" were.
 It answered:
-
+```text
 Based on that specific compliance and security context, 
 here are the various English terms for "processor":
 
@@ -676,12 +679,14 @@ here are the various English terms for "processor":
 - Cryptographic / Secure Processor: The hardware chip protecting the data at the physical level.
 ```
 
+---
+
 The subject is floating. The chunk contains the action, but not enough context to ground it.
 
 Now lets reveal the chunk just before it:
 
 ```text
-storage, and erasure of data subjects' personal information. The data processor
+3) ✂️ storage, and erasure of data subjects' personal information. The data processor
 ```
 
 Something clicks. "Data processor" appears here. "Data integrity" appears in the next chunk. Both refer to the same responsibility — but neither chunk alone is enough to answer the question confidently.
@@ -699,20 +704,20 @@ Instead of splitting text into completely independent chunks, we allow a small p
 **Same text, now with 4-word overlap:**
 
 ```text
-✂️  The Controller shall process personal data in accordance with the
-✂️  in accordance with the principles of lawfulness, fairness, and transparency.
-✂️  lawfulness, fairness, and transparency. Processing activities include collection, storage, and
-✂️  include collection, storage, and erasure of data subjects' personal information.
-✂️  data subjects' personal information. The data processor must implement appropriate
-✂️  processor must implement appropriate technical measures to ensure data integrity
-✂️  to ensure data integrity and prevent unauthorised access.
+1) ✂️  The Controller shall process personal data in accordance with the
+2) ✂️  in accordance with the principles of lawfulness, fairness, and transparency.
+3) ✂️  lawfulness, fairness, and transparency. Processing activities include collection, storage, and
+4) ✂️  include collection, storage, and erasure of data subjects' personal information.
+5) ✂️  data subjects' personal information. The data processor must implement appropriate
+6) ✂️  processor must implement appropriate technical measures to ensure data integrity
+7) ✂️  to ensure data integrity and prevent unauthorised access.
 ```
 
 Now look at these two chunks side by side:
 
 ```text
-data subjects' personal information. The data processor must implement appropriate
-processor must implement appropriate technical measures to ensure data integrity
+5) ✂️ data subjects' personal information. The data processor must implement appropriate
+6) ✂️ processor must implement appropriate technical measures to ensure data integrity
 ```
 
 💡 Both contain the word "processor". A retrieval system searching for that term will pull both — and together, they reconstruct the full picture. 🖼️
