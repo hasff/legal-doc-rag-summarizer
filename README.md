@@ -786,7 +786,7 @@ print(f"📏 Avg chunk size: {sum(len(c) for c in pdf_text_chunks) / len(pdf_tex
 
 This prints every chunk with its number, then a summary of how many chunks were produced and their average size. Useful for sanity-checking that the document was split as expected before wiring up any retrieval logic.
 
-[⬆️ Back to Part 02](#part-2)
+[⬆️ **`Part 2`**](#part-2)
 
 ---
 
