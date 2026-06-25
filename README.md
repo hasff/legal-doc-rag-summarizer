@@ -2222,7 +2222,7 @@ It's also worth noting how little code was needed to go from raw chunks to a wor
 
 #### ⚡ Quick Navigation: [⬅️ Part 07](#part-7) | [Next Steps ➡️](#next-steps--resources_)
 
-> 📒 **What you'll learn:** How to wrap the RAG pipeline built in the previous parts into an interactive Streamlit app, and why preprocessing your documents once is worth the extra step.
+> 📒 **What you'll learn:** How to wrap the RAG flow built in the previous parts into an interactive Streamlit app, and why preprocessing your documents once is worth the extra step.
 
 ---
 
@@ -2417,7 +2417,7 @@ Did you know the embedding model we used (`all-MiniLM-L6-v2`) outputs vectors wi
 | ✅ Danger Score | Used Claude with assistant prefill to get structured JSON risk analysis |
 | ✅ RAG Q&A | Let users ask any question and get answers grounded in the document |
 | ✅ Clause simplifier | Translated legalese into plain English using retrieved context |
-| ✅ Streamlit UI | Wrapped the full pipeline in a clean, interactive interface |
+| ✅ Streamlit UI | Wrapped the full RAG flow in a clean, interactive interface |
 
 ---
 
