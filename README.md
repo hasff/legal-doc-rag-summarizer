@@ -132,7 +132,7 @@ Across this tutorial series, we build a RAG project one layer at a time:
 
 By the end of Part 08, all of this is wrapped in a Streamlit interface, so you can upload a contract and interact with the whole system without touching the terminal.
 
-> ⚠️ As mentioned earlier in this README, this is a learning project, not production-ready software. It's meant to give you a hands-on, working mental model of how RAG pipelines are actually built.
+> ⚠️ As mentioned earlier in this README, this is a learning project, not production-ready software. It's meant to give you a hands-on, working mental model of how RAG systems are actually built.
 
 ### Watch this 10 minute video from IBM - What is Retrieval-Augmented Generation (RAG)?
 [![Watch from IBM - What is Retrieval-Augmented Generation (RAG)?](https://img.youtube.com/vi/T-D1OfcDW1M/maxresdefault.jpg)](https://youtu.be/T-D1OfcDW1M)
