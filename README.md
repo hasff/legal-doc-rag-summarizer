@@ -1825,12 +1825,12 @@ def ask_claude(system: str, user: str, prefill= False) -> str:
     # example: "score": 7, "summary": "...", "red_flags": [...]}
     # it will not include the openning of json! We must add it
     # "{" + '"score": 7, "summary": "...", "red_flags": [...]}'
-    return  ("{" if prefill else "") + response.content[0].text
+    return  ("{" if prefill else "") + response.content[0].text 🌍
 ```
 
-This is where the "words in Claude's mouth" trick happens. When `prefill=True`, an assistant message containing just `{` is appended to the conversation before the call. Claude treats this as its own partial response and continues writing from there, which means the reply will be the rest of the JSON object, never the opening brace again.
+This is where the "words in Claude's mouth" trick happens. When `prefill=True`, an assistant message containing just `{` ⛺ is appended to the conversation before the call. Claude treats this as its own partial response and continues writing from there, which means the reply will be the rest of the JSON object, never the opening brace again.
 
-Since Claude never repeats text it believes it already wrote, the code manually re-adds the `{` ⛺ when building the final string. Skip that step and every parse will fail on a missing opening brace.
+Since Claude never repeats text it believes it already wrote, the code manually re-adds the `{` 🌍 when building the final string. Skip that step and every parse will fail on a missing opening brace.
 
 > ⚠️⚠️⚠️ **Important.** Prefilling does not work with extended thinking enabled. If you turn thinking on for this kind of call, this whole technique breaks.
 
