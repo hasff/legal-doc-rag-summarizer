@@ -113,9 +113,9 @@ Your job is to help users understand documents in plain, clear language.
 Be precise, cite specific clauses when relevant, and only flag clauses that are
 genuinely unusual or significantly disadvantageous compared to industry standards."""
 
-def ask_claude(system: str, user: str, prefill= False) -> str:
+def ask_claude(system: str, query: str, prefill= False) -> str:
 
-    msgs = [{"role": "user", "content": user}]
+    msgs = [{"role": "user", "content": query}]
 
     # put words in claude's mouth
     # to force claude to return json since it "thinks" it already started writing json

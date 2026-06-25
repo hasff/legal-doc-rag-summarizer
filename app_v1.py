@@ -34,9 +34,9 @@ Your job is to help users understand documents in plain, clear language.
 Be precise, cite specific clauses when relevant, and only flag clauses that are
 genuinely unusual or significantly disadvantageous compared to industry standards."""
 
-def ask_claude(system: str, user: str) -> str:
+def ask_claude(system: str, query: str) -> str:
 
-    msgs = [{"role": "user", "content": user}]
+    msgs = [{"role": "user", "content": query}]
 
     response = anthropic_client.messages.create(
         model=CLAUDE_MODEL,
