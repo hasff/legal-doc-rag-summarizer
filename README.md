@@ -412,6 +412,16 @@ Here, the entire PDF text is pasted directly into the question. Claude receives 
 py app_v1.py
 ```
 
+> ⚠️ **Note on potential file corruption**
+> This project intentionally avoids `try/except` blocks around file operations, to keep the code focused on the RAG concepts being taught, not on defensive programming.
+>
+> If you get a `PdfminerException: Unexpected EOF` (or similar `PSEOF` error) when running this script, your local copy of `danger_zone_rag_test.pdf` is likely corrupted. This can happen during clone/download if Git or your OS converts line endings on binary files.
+>
+> **Fix:** re-download the PDF directly from the repo (don't `git pull` over a dirty working copy) or re-clone the repository fresh. If the problem persists, open an issue.
+>
+> 💡 Alternatively, feel free to swap in your own PDF file. Just update the file path in the script accordingly, any legal-style document works for following along. 
+
+
 Here's the output:
 
 ```
