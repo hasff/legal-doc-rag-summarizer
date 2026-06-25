@@ -688,7 +688,7 @@ Something clicks. "Data processor" appears here. "Data integrity" appears in the
 
 > This is the real problem with chunking: not that information disappears, but that it gets fragmented into pieces that are almost useful, and "almost" is not enough.
 
-[⬆️ Back to Part 02](#part-2)
+[⬆️ **`part 2`**](#part-2)
 
 ---
 
