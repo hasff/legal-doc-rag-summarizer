@@ -164,7 +164,7 @@ Here's the full flow, in order:
 
 Nothing here runs in the background, nothing is queued, nothing is distributed. One script, one process, top to bottom. That simplicity is intentional: the goal of this series is to understand *how* each RAG concept works, not to build infrastructure.
 
-![RAG pipeline flow](assets/architecture/rag_process_flow.svg)
+![RAG process flow](assets/architecture/rag_process_flow.svg)
 *A visual map of how the pieces fit together.*
 
 [↑ Back to Table of Contents](#table-of-contents_)
@@ -334,7 +334,7 @@ anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 CLAUDE_MODEL = "claude-haiku-4-5"
 ```
 
-`load_dotenv()` reads your `.env` file and makes `ANTHROPIC_API_KEY` available to `os.getenv`. The Anthropic client is initialized once at module level and reused across all API calls. We're using Claude Haiku here — fast and cost-effective, a good fit for a tutorial pipeline.
+`load_dotenv()` reads your `.env` file and makes `ANTHROPIC_API_KEY` available to `os.getenv`. The Anthropic client is initialized once at module level and reused across all API calls. We're using Claude Haiku here — fast and cost-effective, a good fit for a tutorial project.
 
 ---
 
