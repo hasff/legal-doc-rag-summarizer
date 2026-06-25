@@ -1356,7 +1356,7 @@ for chunk_idx, score in vector_search_result:
 
 
 chunks_tokens = tokenize_texts(pdf_text_chunks)   # 🐍
-bm25 = BM25Okapi(chunks_tokens) # indexing        # 🎃
+bm25 = build_bm25_index(chunks_tokens)            # 🎃
 query_tokens = tokenize_query(question)           # 💬
 
 bm25_search_result = bm25_search(query_tokens, bm25)                         # ⚡
@@ -1373,12 +1373,12 @@ Let's look at the two blocks side by side:
 | | Embeddings (Part 03) | BM25 (Part 04) | Role |
 |---|---|---|---|
 | 🐍 | `embed_texts(pdf_text_chunks)` | `tokenize_texts(pdf_text_chunks)` | Prepares all chunks |
-| 🎃 | *(no equivalent)* | `BM25Okapi(chunks_tokens)` | Builds the index |
+| 🎃 | *(no equivalent)* | `build_bm25_index(chunks_tokens)` | Builds the index |
 | 💬 | `embed_query(question)` | `tokenize_query(question)` | Prepares the question |
 | ⚡ | `vector_search(question_embeddings, chunks_embeddings)` | `bm25_search(query_tokens, bm25)` | Searches |
 
 > 💡 **One extra step for BM25** <br>
-> `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `BM25Okapi(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`.
+> `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `build_bm25_index(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`.
 
 Same data in, same data out, same order of operations. The only thing that changes is what happens inside each function, which is what Step 2 covers.
 
@@ -1399,20 +1399,23 @@ def tokenize_texts(texts: list[str]) -> list[list[str]]:
 def tokenize_query(query: str) -> list[str]:
     return query.lower().split()
 
+def build_bm25_index(chunks_tokens: list[list[str]]) -> BM25Okapi:
+    return BM25Okapi(chunks_tokens)    
+
 # ── BM25 search ───────────────────────────────────────────────────────────────
 def bm25_search(query_tokens: list[str], bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
     scores = bm25.get_scores(query_tokens)
     return sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[:k]
 ```
 
-`rank-bm25` handles the heavy lifting described in the theory section. `BM25Okapi` prepares the corpus for scoring by computing term statistics. It captures how often each term appears across all documents and assigns higher weight to rare terms than to common ones.
+`build_bm25_index` handles the heavy lifting described in the theory section. `BM25Okapi` prepares the corpus for scoring by computing term statistics. It captures how often each term appears across all documents and assigns higher weight to rare terms than to common ones.
 
 `tokenize_texts` and `tokenize_query` don't do anything algorithmically interesting, they just split text into lowercase tokens. Their value is structural: they keep the BM25 path shaped exactly like the embeddings path, so chunks and queries are always prepared the same way before comparison.
 
 `bm25_search` then plays the same role as `vector_search`. It takes the already-prepared query tokens, runs them against the index, and returns the top `k` chunks ranked by score.
 
 > 💡 **Worth repeating: the extra index-building step** <br>
-> The table above already shows it, but it's easy to skim past: `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `BM25Okapi(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`. This is the one place where the parallel breaks, so it's worth pointing at twice.
+> The table above already shows it, but it's easy to skim past: `tokenize_texts 🐍` only produces the token lists, it doesn't build an index. That happens separately, with `build_bm25_index(chunks_tokens) 🎃`. The vector side has no equivalent line here, the plain list of embeddings already works as the "index" for `vector_search ⚡`. This is the one place where the parallel breaks, so it's worth pointing at twice.
 
 > ⚠️ **A note on tokenization** <br>
 > It is worth mentioning that `tokenize_texts` and `tokenize_query` use a naive `.split()`, which assumes words are separated by spaces. Languages like Chinese, Japanese, or Thai don't work that way, they would need a dedicated tokenizer instead, so you can see how complex this can become.
@@ -1595,7 +1598,7 @@ for chunk_idx, score in vector_search_result:
 
 
 tokenized = tokenize_texts(pdf_text_chunks)
-bm25 = BM25Okapi(tokenized)
+bm25 = build_bm25_index(tokenized)
 query_tokens = tokenize_query(question)
 
 bm25_search_result = bm25_search(query_tokens, bm25)
@@ -2086,7 +2089,7 @@ if __name__ == "__main__":
 
     chunks_embeddings = embed_texts(pdf_text_chunks)  
     chunks_tokens = tokenize_texts(pdf_text_chunks)
-    bm25 = BM25Okapi(chunks_tokens) # indexing   
+    bm25 = build_bm25_index(chunks_tokens)   
 
     # 1)
     question = "What the document is about?"
@@ -2266,7 +2269,7 @@ def preprocess_pdfs(uploaded_files):
 
         st.write("📚 Building BM25 index...")
         chunks_tokens = tokenize_texts(all_chunks)
-        bm25 = BM25Okapi(chunks_tokens)
+        bm25 = build_bm25_index(chunks_tokens)
 
         status.update(label="✅ Ready!", state="complete")
 

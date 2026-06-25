@@ -75,6 +75,9 @@ def tokenize_texts(texts: list[str]) -> list[list[str]]:
 def tokenize_query(query: str) -> list[str]:
     return query.lower().split()
 
+def build_bm25_index(chunks_tokens: list[list[str]]) -> BM25Okapi:
+    return BM25Okapi(chunks_tokens)
+
 # ── BM25 search ───────────────────────────────────────────────────────────────
 def bm25_search(query_tokens: list[str], bm25: BM25Okapi, k: int = 5) -> list[tuple[int, float]]:
     scores = bm25.get_scores(query_tokens)
@@ -221,7 +224,7 @@ def preprocess_pdfs(uploaded_files):
 
         st.write("📚 Building BM25 index...")
         chunks_tokens = tokenize_texts(all_chunks)
-        bm25 = BM25Okapi(chunks_tokens)
+        bm25 = build_bm25_index(chunks_tokens)
 
         status.update(label="✅ Ready!", state="complete")
 
