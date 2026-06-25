@@ -15,7 +15,9 @@ You fill the forms and click next... then it complains about the *impossible* **
 you squint at the screen, try three times... finally you did it! Click next...
 
 Now it complains because you didn't check the *"I have read and agree to the Terms of Service."*
-You check it in a hurry and smash that next button. **FINALLY!!! 🥇🥇🥇**
+You check it in a hurry and smash that next button. 
+
+**FINALLY!!! 🥇🥇🥇**
 
 Did you read it? Those terms you just "said" you did?
 
@@ -231,6 +233,8 @@ Add your Anthropic API key to `.env`:
 ANTHROPIC_API_KEY="your_key_here"
 ```
 
+> ⚠️ Never commit your .env file. Add it to .gitignore.
+
 [↑ Back to Table of Contents](#table-of-contents_)
 
 <a name="project-structure_"></a>
@@ -264,7 +268,7 @@ legal-doc-rag-summarizer/
 
 <a name="part-1"></a>
 
----
+--- 
 
 # Part 01 - The Naive Approach: Sending the Whole PDF to Claude
 
