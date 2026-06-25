@@ -1649,12 +1649,18 @@ Full output, top 5 results per method. Each engine prints its own score below it
 > scope are subject to automatic termination and incident escalation under INC-AI-BOUNDARY-001.
 > Human oversight is mandatory for any agent action exceeding monetary threshold EUR 500.
 > ```
+>
+> 💡 **Another thing worth noting:** even when the right chunk gets retrieved, remember that `chunk_size=800` with `overlap=100` cuts text at fixed boundaries. The "3.2 AI Agent Conduct" paragraph was correctly retrieved, but neighboring information (perhaps from the section before or after) may have been left out. This is the classic trade-off of size-based chunking: we gain predictability, but lose continuity at the edges.
+
+<br>
 
 > ⚠️ **A quick reminder before reading too much into these numbers.**
 > `danger_zone_rag_test.pdf` is not a real contract. It's a synthetic document, built on purpose with overlapping ambiguous terms ("agent," "transfer," "security," "termination") spread across unrelated legal domains. That ambiguity is what trips up vector search specifically.
 >
 > #### Remember my "🧐 **Reflection**"  from `Part 04`?
 > So, here's the actual culprit: the query had `"AI agent"` in quotes, and our naive tokenizer (`.lower().split()`) didn't bother stripping punctuation. That tiny apostrophe corrupted both edges of the phrase, `'ai` and `agent'`, so BM25 was looking for tokens that didn't exist in the document. No match = no magic. With that link broken, BM25's top scores ended up driven by whatever generic terms still had some weight left, words like "document" or "info", not by anything meaningful. Moral of the story? Always sanitize your tokens. Lesson learned. 😅
+
+<br>
 
 > 🧪 **Try it yourself**
 > Go back to the original query in `app_v5.py`, strip the quotes from `"AI agent"`, and rerun it. Compare the BM25-only output before and after.
