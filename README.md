@@ -1956,7 +1956,7 @@ Prefilling doesn't just save a markdown-stripping step. It changes the probabili
 
 #### ⚡ Quick Navigation: [⬅️ Part 06](#part-6) | [Part 08 ➡️](#part-8)
 
-> 📒 **What you'll learn:** How to put the full RAG pipeline to work with two concrete use cases: answering a direct question about a document, and simplifying a legal clause with retrieved context as support.
+> 📒 **What you'll learn:** How to put the full RAG flow to work with two concrete use cases: answering a direct question about a document, and simplifying a legal clause using retrieved context as support.
 
 ---
 
