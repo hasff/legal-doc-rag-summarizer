@@ -1054,6 +1054,19 @@ cosine_similarity(A, B) = (A · B) / (‖A‖ × ‖B‖)
 
 Where `A · B` is the dot product of the two vectors, and `‖A‖`, `‖B‖` are their magnitudes (lengths).
 
+- **Dot product**: multiply matching numbers from each vector, then sum the results. <br>
+    > Example: <br>
+    > A = [0.7, 0.7] <br>
+    > B = [0.6, 0.8] <br>
+    > A · B = (0.7 × 0.6) + (0.7 × 0.8) = 0.42 + 0.56 = 0.98
+
+- **Magnitude**: the "length" of a vector, the same idea as the Pythagorean theorem, just generalised to more than two dimensions. Square every number, sum them, then take the square root.
+    > Example: <br>
+    > A = [0.7, 0.7] <br>
+    > ‖A‖ = √(0.7² + 0.7²) = √0.98 ≈ 0.99 
+
+🧵 Don't worry, you'll see this implemented in code soon!
+
 ---
 
 > You'll also come across **cosine distance**, calculated simply as `1 - cosine similarity`.
@@ -1181,7 +1194,10 @@ def vector_search(query_emb: list[float], embeddings: list[list[float]], k: int 
     return sorted(scores, key=lambda x: x[1], reverse=True)[:k]
 ```
 
-`cosine_similarity` implements the formula from the theory section directly: dot product of the two vectors, divided by the product of their magnitudes. `vector_search` applies that function between the question's embedding and every chunk's embedding, then returns the top `k` chunks sorted by score, highest first.
+
+`cosine_similarity` implements the formula from the theory section directly: dot product of the two vectors, divided by the product of their magnitudes. <br> 🧵 <br> - `dot` is `A · B`, <br> - `mag_a`/`mag_b` are `‖A‖`/`‖B‖`.
+
+`vector_search` applies that function between the question's embedding and every chunk's embedding, then returns the top `k` chunks sorted by score, highest first.
 
 #### Step 3 — Testing it
 
