@@ -34,6 +34,7 @@ any clause and get it back in plain, everyday language anyone can understand (or
 language you ask for).
 
 ![Legal Doc Analyser in action](assets/intro/screenshot_intro.jpg)
+*A sneak peek. The full walkthrough, screenshots and demo video are waiting for you at the end, in [Part 08](#part-8).*
 
 ---
 
