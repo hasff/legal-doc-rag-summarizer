@@ -1820,7 +1820,7 @@ def ask_claude(system: str, query: str, prefill= False) -> str:
     # put words in claude's mouth
     # to force claude to return json since it "thinks" it already started writing json
     if prefill:
-        msgs.append({"role": "assistant", "content": "{"}) ⛺
+        msgs.append({"role": "assistant", "content": "{"}) # ⛺
 
     response = anthropic_client.messages.create(
         model=CLAUDE_MODEL,
@@ -1833,7 +1833,7 @@ def ask_claude(system: str, query: str, prefill= False) -> str:
     # example: "score": 7, "summary": "...", "red_flags": [...]}
     # it will not include the openning of json! We must add it
     # "{" + '"score": 7, "summary": "...", "red_flags": [...]}'
-    return  ("{" if prefill else "") + response.content[0].text 🌍
+    return  ("{" if prefill else "") + response.content[0].text # 🌍
 ```
 
 This is where the "words in Claude's mouth" trick happens. When `prefill=True`, an assistant message containing just `{` ⛺ is appended to the conversation before the call. Claude treats this as its own partial response and continues writing from there, which means the reply will be the rest of the JSON object, never the opening brace again.
