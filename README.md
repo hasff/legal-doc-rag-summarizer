@@ -2469,7 +2469,7 @@ Want to go deeper? Here are the resources that complement this project.
 
 This tutorial took real time, real focus, and more debugging sessions than I'd like to admit. Not because I had to build it, but because this is genuinely how I like to spend my time: learning something properly enough to explain it to someone else.
 
-I've always been told I have a knack for teaching, and I believe it. Explaining something forces me to actually understand it, no shortcuts, no hand-waving.
+I’ve always enjoyed breaking down complex ideas into simple terms. Over time, and after hearing from so many people that my explanations click for them, I’ve come to think it might actually be a strength of mine.
 
 Right now this is something I do on my own time, for free. But I'd genuinely love for this to become my actual work, building, teaching, and explaining things like RAG pipelines and agentic systems, not just a side project squeezed into evenings and weekends. If you're building something in this space and looking for someone who already does this kind of work without being asked, that's exactly the kind of opportunity I'm looking for.
 
