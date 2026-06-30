@@ -217,7 +217,7 @@ def _test_compute_danger_score(pdf_text_chunks: list[str]):
         print(f"➡️  clause: {clause} \n➡️  issue: {issue} \n\n")
 
 
-def _test_answer_question(question: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+def _test_answer_question(question: str, pdf_text_chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
     result = answer_question(question, pdf_text_chunks, chunks_embeddings, bm25)
 
     print()
@@ -227,7 +227,7 @@ def _test_answer_question(question: str, chunks: list[str], chunks_embeddings: l
     print(f"answer: {result} \n\n") 
 
 
-def _test_simplify_clause(clause: str, chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
+def _test_simplify_clause(clause: str, pdf_text_chunks: list[str], chunks_embeddings: list[list[float]], bm25: BM25Okapi):
     result = simplify_clause(clause, pdf_text_chunks, chunks_embeddings, bm25)
 
     print()
