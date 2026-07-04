@@ -1281,6 +1281,16 @@ But look closer at the rest of the results. The model also pulled in Real Estate
 
 This is exactly why `danger_zone_rag_test.pdf` was built the way it was: every section shares ambiguous keywords with two unrelated domains, on purpose. Semantic search alone gets us close, but not precise enough. In the next part, we'll bring in **BM25**, a classic keyword-matching algorithm, to complement what embeddings miss: exact term matches.
 
+>  💭 **Why does the 🔑 note below 👇 exist?** <br>
+> Most RAG tutorials focus on the ID problem, embeddings struggling with exact codes and identifiers. That's a real issue, and it's the one everyone covers. Polysemy, a single word carrying several unrelated meanings, gets far less attention, even though it's just as common in real documents. That's why `danger_zone_rag_test.pdf` leads with "agent" instead of an ID: it's the less talked about half of the same problem.
+
+> 🔑 **Exact identifiers are a known blind spot** <br>
+> This is a different problem from the "agent" case earlier. With "agent", the word has several meanings, and semantic search can't tell which one you meant. With an ID like `AI-AGT-PERM-v2`, there's no meaning to find at all: it's just a code. Embeddings are built to compare meaning, not to spot exact codes, so they don't give this kind of text any special treatment.
+>
+> In practice, that means a chunk with the exact ID and a chunk without it can score almost the same, as long as both are about a similar topic.
+>
+> I ran this myself, with a query built around an ID, but the code isn't part of the tracked test script. It was a quick manual check against `danger_zone_rag_test.pdf`, since it already has plenty of IDs and references. You'll see the actual numbers in Part 04, once BM25 is in the picture.
+
 ---
 
 > 💡 **RAG curiosity:** the embedding model doesn't know what any of its output numbers individually "mean". Each dimension is just a learned feature that helps the model separate concepts during training. You can think of "happy", "about oceans", or "about software" as illustrative labels for intuition, but in practice nobody can point at dimension #47 and say exactly what it tracks. The model just learned that texts close in meaning should land close together in that space, and that's good enough.
@@ -1527,6 +1537,22 @@ Three results worth pointing at:
 
 ---
 
+> 🔑 **What about exact IDs, like `AI-AGT-PERM-v2`?** <br>
+> This wasn't part of the tracked test script, just a quick exploratory run outside the code, but the numbers are worth showing.
+>
+> Query: `"what AI-AGT-PERM-v2 is about?"`
+>
+> **🎯 Vector search top result:** <br> `0.486` → the chunk that actually contains `AI-AGT-PERM-v2` (`3.2 AI Agent Conduct`). Good start.
+> But the next 4 results, scoring between `0.18` and `0.27`, don't contain the ID anywhere, and don't share any literal words with the query either. The query is just `"what AI-AGT-PERM-v2 is about?"`, nothing more, no memory of previous questions involved. This is the opaque side of embeddings we mentioned back in Part 03: the model isn't matching keywords like BM25 does, it's comparing the query's overall vector to each chunk's vector. We can't point to a specific word and explain why one clause scores `0.27` and another `0.19`, that's exactly the tradeoff of using a model whose internal reasoning we can't inspect.
+>
+> **🔍 BM25 top result:** <br> `0.630`, and it's not even the right chunk. BM25 also tokenizes the whole query, not just the ID, so `what`, `is`, and `about` all compete for weight too. The correct chunk comes second, at `0.625`, practically tied for first, while the actual top spot went to a section that never mentions the ID at all, likely scoring on one of the other query words instead.
+>
+> Neither method treats the ID as a hard, unambiguous anchor the way you might expect. This is one of the reasons production RAG systems often add exact-match filters or metadata lookups on top of retrieval when codes and IDs matter.
+>
+> 🧪 **Try it yourself:** grab any ID from `danger_zone_rag_test.pdf` (or your own document), build a query around it like I did, and run it through `app_v4.py`. Watch where the ID-bearing chunk actually lands.
+
+---
+
 > 💡 **RAG curiosity:**
 Did you know BM25 has been the default lexical ranking function in Lucene and Elasticsearch for about a decade. Even in modern AI-powered retrieval systems, it is commonly used alongside vector search rather than being replaced by it.
 
@@ -1743,6 +1769,14 @@ This PDF was designed to trip up retrieval: "agent" as legal, AI, and real estat
 > 💡 With a normal, non-adversarial document, hybrid retrieval alone would likely be enough. Here it's straining against a document engineered to confuse it, which is exactly what `danger_zone_rag_test.pdf` is for.
 
 And notice: all of this happened without calling Claude once. Pure retrieval, pure math. Claude only enters the picture in the next part, when we turn these retrieved chunks into an actual risk assessment.
+
+> 🔑 **And the ID case from Part 03/04?** <br>
+> I ran the same query, `"what AI-AGT-PERM-v2 is about?"`, through the hybrid pipeline: 
+> - vector search put `AI Agent Conduct` at rank 1, 
+> - BM25 put it at rank 2, 
+> - Hybrid retrieval combined both and landed it at rank 1 too.
+>
+> But that's not RRF understanding IDs. It's just two engines that happened to already rank the chunk near the top, each for its own unrelated reason. If either engine had missed the chunk entirely, RRF couldn't invent that match out of nothing. Guaranteed exact-ID retrieval still means a dedicated exact-match or metadata filter layered on top, not something RRF alone solves.
 
 ---
 
