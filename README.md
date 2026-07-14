@@ -2508,8 +2508,8 @@ Want to go deeper? Here are the resources that complement this project.
 - 🤗 [Sentence Transformers — HuggingFace](https://www.sbert.net/)
 
 **Want to keep going?**
-This project has a sequel: [legal-doc-rag-summarizer-v2-hybrid](https://github.com/hasff/legal-doc-rag-summarizer-v2-hybrid).
 
+This project has a sequel: [legal-doc-rag-summarizer-v2-hybrid](https://github.com/hasff/legal-doc-rag-summarizer-v2-hybrid).
 It takes this same app and adds a local LLM (llama3.2:1b, via Ollama) to handle routing, deciding what actually needs Claude before spending an API call on it.
 
 [↑ Back to Table of Contents](#table-of-contents_)
