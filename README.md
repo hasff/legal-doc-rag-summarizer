@@ -1,6 +1,7 @@
 # legal-doc-rag-summarizer
 
 [![Sponsor hasff](https://img.shields.io/badge/Sponsor-hasff-brightgreen?logo=github-sponsors)](https://github.com/sponsors/hasff)
+[![Portfolio](https://img.shields.io/badge/Portfolio-AI%2FML%20Projects-blue?logo=github)](https://hasff.github.io/my-ai-portfolio/)
 
 > A RAG-powered Streamlit app that reads legal PDFs, answers questions about them, scores their risk, and simplifies legalese into plain English — built with Python, HuggingFace embeddings, BM25, and the Claude API.
 
@@ -2536,6 +2537,7 @@ Found this useful? Have questions or ideas? I'd love to hear from you either way
 
 - 🔗 **[LinkedIn](https://www.linkedin.com/in/hugo-ferro-1434b414/)**
 - 📩 **Email:** hugoferro (at) gmail.com
+- 🗂️ **Portfolio:** [more AI/ML projects like this one](https://hasff.github.io/my-ai-portfolio/)
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
