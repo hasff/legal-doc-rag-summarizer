@@ -159,7 +159,7 @@ Here's the full flow, in order:
 
 1. **Upload** - one or more PDFs are uploaded via the Streamlit sidebar.
 2. **Extract** - `extract_text_from_pdf` pulls raw text out of each PDF using `pdfplumber`.
-3. **Chunk** - `chunk_text` splits that raw text into overlapping chunks, so context isn't lost at the edges
+3. **Chunk** - `chunk_text` splits that raw text into overlapping chunks, so context isn't lost at the edges.
 4. **Index (twice, in parallel)**
    - `embed_texts` turns every chunk into a vector using a local `SentenceTransformer` model.
    - `tokenize_texts` + `BM25Okapi` builds a lexical index over the same chunks.
