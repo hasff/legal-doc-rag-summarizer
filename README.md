@@ -80,6 +80,7 @@ Before you dive in, keep a few things in mind:
 - [What is RAG?](#what-is-rag_)
 - [Project Architecture](#project-architecture_)
 - [Requirements](#requirements_)
+- [⚡ Quickstart (5 minutes)](#quickstart_)
 - [Setup](#setup_)
 - [Project Structure](#project-structure_)
 - [Part 01 - The Naive Approach: Sending the Whole PDF to Claude](#part-1)
@@ -158,7 +159,7 @@ Here's the full flow, in order:
 
 1. **Upload** - one or more PDFs are uploaded via the Streamlit sidebar.
 2. **Extract** - `extract_text_from_pdf` pulls raw text out of each PDF using `pdfplumber`.
-3. **Chunk** - `chunk_text` splits that raw text into overlapping chunks, so context isn't lost at the edges.
+3. **Chunk** - `chunk_text` splits that raw text into overlapping chunks, so context isn't lost at the edges
 4. **Index (twice, in parallel)**
    - `embed_texts` turns every chunk into a vector using a local `SentenceTransformer` model.
    - `tokenize_texts` + `BM25Okapi` builds a lexical index over the same chunks.
@@ -184,6 +185,53 @@ Nothing here runs in the background, nothing is queued, nothing is distributed. 
 
 - Python 3.10+
 - An Anthropic API key → [console.anthropic.com](https://console.anthropic.com)
+
+[↑ Back to Table of Contents](#table-of-contents_)
+
+<a name="quickstart_"></a>
+
+---
+
+## ⚡ Quickstart (5 minutes)
+
+#### ⚡ Quick Navigation: [⬅️ Requirements](#requirements_) | [Setup ➡️](#setup_)
+
+Don't want the full tutorial yet? Get the finished app running first, then read the parts to learn how it works.
+
+### 1. Install
+
+```bash
+git clone https://github.com/hasff/legal-doc-rag-summarizer.git
+cd legal-doc-rag-summarizer
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 2. Add your API key
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and add your Anthropic API key ([console.anthropic.com](https://console.anthropic.com)):
+
+```
+ANTHROPIC_API_KEY=<your_key_here>
+```
+
+### 3. Run it
+
+```bash
+streamlit run app_v8.py
+```
+
+The app opens in your browser (usually http://localhost:8501). Upload one of
+the sample documents from `tos_docs/` (e.g. the Google Terms of Service),
+click **🚀 Process Documents**, then ask it anything in the chat tab — or try
+**Analyse Risk** and the clause simplifier.
+
+> 💡 Curious how it works under the hood? Start at [Part 01](#part-1) and follow the tutorial.
 
 [↑ Back to Table of Contents](#table-of-contents_)
 
