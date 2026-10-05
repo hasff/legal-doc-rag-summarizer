@@ -80,7 +80,7 @@ Before you dive in, keep a few things in mind:
 - [What is RAG?](#what-is-rag_)
 - [Project Architecture](#project-architecture_)
 - [Requirements](#requirements_)
-- [⚡ Quickstart (5 minutes)](#quickstart_)
+- [Quickstart (5 minutes) ⚡](#quickstart_)
 - [Setup](#setup_)
 - [Project Structure](#project-structure_)
 - [Part 01 - The Naive Approach: Sending the Whole PDF to Claude](#part-1)
@@ -191,8 +191,11 @@ Nothing here runs in the background, nothing is queued, nothing is distributed. 
 <a name="quickstart_"></a>
 
 ---
+⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡
 
-## ⚡ Quickstart (5 minutes)
+---
+
+## Quickstart (5 minutes) ⚡
 
 #### ⚡ Quick Navigation: [⬅️ Requirements](#requirements_) | [Setup ➡️](#setup_)
 
@@ -238,10 +241,13 @@ click **🚀 Process Documents**, then ask it anything in the chat tab — or tr
 <a name="setup_"></a>
 
 ---
+⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡
+
+---
 
 ## Setup
 
-#### ⚡ Quick Navigation: [⬅️ Requirements](#requirements_) | [Project Structure ➡️](#project-structure_)
+#### ⚡ Quick Navigation: [⬅️ Quickstart](#quickstart_) | [Project Structure ➡️](#project-structure_)
 
 ### 1. Clone the repository
 
