@@ -247,7 +247,7 @@ click **🚀 Process Documents**, then ask it anything in the chat tab — or tr
 
 ## Setup
 
-#### ⚡ Quick Navigation: [⬅️ Quickstart](#quickstart_) | [Project Structure ➡️](#project-structure_)
+#### ⚡ Quick Navigation: [⬅️ Quickstart (5 minutes) ⚡](#quickstart_) | [Project Structure ➡️](#project-structure_)
 
 ### 1. Clone the repository
 
